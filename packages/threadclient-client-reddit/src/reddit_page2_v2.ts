@@ -196,6 +196,11 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
         }, {canonicalize: true});
         return p2.prefilledVerticalLoader(content, client.getLink("wikipage", canonical), undefined);
     }
+    if (parsed.kind === "subreddits") {
+        const base: BaseSubreddits = {};
+        client.addDirty(client.data.subreddits_sorts.setAndList(stringify({}), parsed.value));
+        return p2.prefilledVerticalLoader(content, client.getLink("subreddits", base), undefined);
+    }
     // if(parsed.kind === "inbox") {
     //     const base: BaseInbox = {};
     //     if(parsed.current.tab === "compose") {
@@ -213,6 +218,14 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
     // }
     throw new Error("Enotsupported: " + JSON.stringify(parsed)); // TODO
 }
+
+export type SubredditsSort = {
+    path:
+        | ["subreddits", "new" | "popular"]
+        | ["subreddits", "mine", "subscriber" | "contributor" | "moderator"]
+        | ["users"]
+    ,
+};
 
 type LowercaseString = string & {__is_ascii_lowercase: true};
 export function asLowercaseString(str: string): LowercaseString {
@@ -452,7 +465,9 @@ export type RedditClientData = {
     user_sorts: ObservableMap<Stringified<BaseUser>, UserSort, Generic.Link<unknown>>,
     post_sorts: ObservableMap<Stringified<BaseItem>, Sortv, Generic.Link<unknown>>,
     subreddit_sorts: ObservableMap<Stringified<BaseSubreddit>, SubSort, Generic.Link<unknown>>,
+    subreddits_sorts: ObservableMap<Stringified<BaseSubreddits>, SubredditsSort, Generic.Link<unknown>>,
 };
+type BaseSubreddits = {_?: undefined};
 type BaseTrophy = {
     user: BaseUser,
     label: string,
@@ -479,6 +494,7 @@ export function initRedditClientData(prev?: RedditClientData): RedditClientData 
         user_sorts: new ObservableMap(prev?.user_sorts),
         post_sorts: new ObservableMap(prev?.post_sorts),
         subreddit_sorts: new ObservableMap(prev?.subreddit_sorts),
+        subreddits_sorts: new ObservableMap(prev?.subreddits_sorts),
     };
 }
 export function trackRedditClientData(data: RedditClientData, link: Generic.Link<unknown>): void {
@@ -498,6 +514,7 @@ export function trackRedditClientData(data: RedditClientData, link: Generic.Link
     data.user_sorts.beginTracking(link);
     data.post_sorts.beginTracking(link);
     data.subreddit_sorts.beginTracking(link);
+    data.subreddits_sorts.beginTracking(link);
 }
 export function untrackRedditClientData(data: RedditClientData): void {
     data.items.endTracking();
@@ -516,6 +533,7 @@ export function untrackRedditClientData(data: RedditClientData): void {
     data.user_sorts.endTracking();
     data.post_sorts.endTracking();
     data.subreddit_sorts.endTracking();
+    data.subreddits_sorts.endTracking();
 }
 
 type BaseWikipage = {
@@ -661,6 +679,22 @@ export type RedditLinkDescriptors = {
     },
     wikipage_request: {
         data: BaseRevisedWikipage,
+        content: Generic.Opaque<"loader">,
+    },
+    subreddits: {
+        data: BaseSubreddits,
+        content: Generic.Post,
+    },
+    subreddits_sort_group: {
+        data: BaseSubreddits,
+        content: Generic.SortGroup,
+    },
+    subreddits_sort_menu: {
+        data: {_?: undefined},
+        content: Generic.SortMenu,
+    },
+    subreddits_replies_request: {
+        data: BaseSubreddits,
         content: Generic.Opaque<"loader">,
     },
 };
@@ -1067,10 +1101,12 @@ export const resolvers: {
         const widgets = client.data.widgets.get(stringify(base));
         const t5 = client.data.subreddit_t5s.get(stringify(base));
         console.log("subreddit_card", base, widgets, t5);
-        if (widgets == null || t5 == null || t5.kind !== "t5") return null;
+        if (t5 == null || t5.kind !== "t5") return null;
         return {error: null, value: subredditHeaderExists({
             subreddit: t5.data.display_name,
-            widgets: widgets,
+            // widgets are used for the menu, but sometimes we will have a t5 without having loaded widgets yet.
+            // for now we will display it but without the menu. TODO: in this case, we should show a loader to fill the card maybe?
+            widgets: widgets ?? null,
             sub_t5: t5,
         })};
     },
@@ -1435,6 +1471,8 @@ export const resolvers: {
             sorted = {kind: "subreddit", sub: base.sub, sort: subSortMethod(client, base.sub)};
         } else if (base.kind === "user") {
             sorted = {kind: "user", user: base.user, sort: userSortMethod(client, base.user)};
+        } else if (base.kind === "subreddits") {
+            sorted = {kind: "subreddits", srs: base.srs, sort: subredditsSortMethod(client, base.srs)};
         } else {
             throw new Error("todo support base kind: " + stringify(base));
         }
@@ -1464,6 +1502,7 @@ export const resolvers: {
                     }
                     return handleMore(client, ch, sort, post_fullname, subreddit_name);
                 }
+                if (ch.kind === "t5") return client.getLink("subreddit", {sr_name: asLowercaseString(ch.data.display_name)});
                 return client.getLink("item", {fullname: ch.data.name});
             }),
             ...full.data.after ? [p2.createSymbolLinkToError(content, "TODO impl after", full.data.after)] : [],
@@ -1578,7 +1617,74 @@ export const resolvers: {
     wikipage_request(client, base) {
         return {error: null, value: opaque_loader.encode({kind: "wikipage", page: base})};
     },
+    subreddits(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+        return {error: null, value: {
+            kind: "post",
+            content: {
+                kind: "post",
+                title: {text: "Subreddits"},
+                body: {kind: "none"},
+                collapsible: {default_collapsed: true},
+            },
+            internal_data: base,
+            parent: {loader: p2.prefilledVerticalLoader(client.dirty_content, client.getLink("client", {}), undefined)},
+            replies: {
+                loader: {
+                    kind: "horizontal_loader",
+                    key: client.getLink("replies", {kind: "subreddits", srs: base}),
+                    request: client.getLink("subreddits_replies_request", base),
+                    client_id,
+                    autoload: true,
+                },
+                display: "repivot_list",
+                sort_group: client.getLink("subreddits_sort_group", base),
+                sort_menu: client.getLink("subreddits_sort_menu", {}),
+            },
+            url: `/subreddits`, // TODO include the sort
+            client_id,
+        }};
+    },
+    subreddits_sort_group(client, base): Generic.ReadLinkResult<Generic.SortGroup> | null {
+        const sort = subredditsSortMethod(client, base);
+        return {error: null, value: {
+            selected: {
+                label: sort.path.join("/"),
+                key: stringify(sort),
+            },
+            group: opaque_sort_group.encode({kind: "subreddits", srs: base}),
+        }};
+    },
+    subreddits_sort_menu(client, base): Generic.ReadLinkResult<Generic.SortMenu> | null {
+        const sov = (v: SubredditsSort): Generic.SortOption["value"] => {
+            return {kind: "single", key: stringify(v), request: opaque_sort_option.encode({kind: "subreddits", sort: v})};
+        };
+        return {error: null, value: {
+            options: [
+                {label: "Popular", value: sov({path: ["subreddits", "popular"]})},
+                {label: "New", value: sov({path: ["subreddits", "new"]})},
+                {label: "Users", value: sov({path: ["users"]})},
+                {label: "My Subreddits", value: {kind: "list", items: [
+                    {label: "Subscriber", value: sov({path: ["subreddits", "mine", "subscriber"]})},
+                    {label: "Approved User", value: sov({path: ["subreddits", "mine", "contributor"]})},
+                    {label: "Moderator", value: sov({path: ["subreddits", "mine", "moderator"]})},
+                ]}},
+            ],
+        }};
+    },
+    subreddits_replies_request(client, base) {
+        const sort = subredditsSortMethod(client, base);
+        return {error: null, value: opaque_loader.encode({
+            kind: "fetch_listing",
+            url: sort.path.map(t => `/${t}`).join("") as `/__any_listing`,
+            parent: {kind: "subreddits", srs: base, sort},
+            allow_replies: true,
+        })};
+    },
 };
+
+function subredditsSortMethod(client: RedditClient, base: BaseSubreddits): SubredditsSort {
+    return client.data.subreddits_sorts.get(stringify(base)) ?? {path: ["subreddits", "popular"]};
+}
 
 function itemReplies(client: RedditClient, base: BaseItem, full: Reddit.T1 | Reddit.T3): {replies: Generic.PostReplies} {
     return {
@@ -2043,6 +2149,9 @@ type SortOptionKind = {
 } | {
     kind: "user",
     sort: UserSort,   
+} | {
+    kind: "subreddits",
+    sort: SubredditsSort,
 };
 type SortGroupKind = {
     kind: "sub",
@@ -2053,6 +2162,9 @@ type SortGroupKind = {
 } | {
     kind: "user",
     user: BaseUser,   
+} | {
+    kind: "subreddits",
+    srs: BaseSubreddits,
 };
 
 type AllowReplies = true | {after_id: string};
@@ -2068,6 +2180,10 @@ function addItem(client: RedditClient, item: Reddit.Item, allow_replies: AllowRe
         if (parent.kind !== "user_trophies") return; // need user_trophies for trophy
         // t6 (trophies) don't have usable names. instead we need to map them as (label,user)
         client.addDirty(client.data.user_trophies.setAndList(stringify({label: item.data.name, user: parent.user}), item)); 
+        return;
+    }
+    if (item.kind === "t5") {
+        client.addDirty(client.data.subreddit_t5s.setAndList(stringify({sr_name: asLowercaseString(item.data.display_name)}), item));
         return;
     }
 
@@ -2095,8 +2211,22 @@ type UserSort = {
     tab: "upvoted" | "downvoted" | "hidden" | "saved",
 };
 
-type SortedObjectID = {kind: "item", item: BaseItem, sort: Sortv} | {kind: "subreddit", sub: BaseSubreddit, sort: SubSort} | {kind: "user_trophies", user: BaseUser} | {kind: "user", user: BaseUser, sort: UserSort} | {kind: "wikipage_revisions", page: BaseWikipage}; // TODO: subreddits have T5s and it should be possible to use them?
-type ObjectID = {kind: "item", item: BaseItem} | {kind: "subreddit", sub: BaseSubreddit} | {kind: "user_trophies", user: BaseUser} | {kind: "user", user: BaseUser} | {kind: "wikipage_revisions", page: BaseWikipage}; // TODO: subreddits & users have T5s and it should be possible to use them?
+type SortedObjectID =
+    | {kind: "item", item: BaseItem, sort: Sortv}
+    | {kind: "subreddit", sub: BaseSubreddit, sort: SubSort} // TODO: subreddits have T5s and it should be possible to use their IDs?
+    | {kind: "user_trophies", user: BaseUser}
+    | {kind: "user", user: BaseUser, sort: UserSort}
+    | {kind: "wikipage_revisions", page: BaseWikipage}
+    | {kind: "subreddits", srs: BaseSubreddits, sort: SubredditsSort}
+;
+type ObjectID =
+    | {kind: "item", item: BaseItem}
+    | {kind: "subreddit", sub: BaseSubreddit}
+    | {kind: "user_trophies", user: BaseUser}
+    | {kind: "user", user: BaseUser}
+    | {kind: "wikipage_revisions", page: BaseWikipage}
+    | {kind: "subreddits", srs: BaseSubreddits}
+;
 
 function addListing(client: RedditClient, parent: SortedObjectID | {kind: "none"}, listing: Reddit.Listing | "", allow_replies: true | {after_id: string}): void {
     // if we have a 'after' link, then that means to add a load more after us
@@ -2116,7 +2246,7 @@ function addListing(client: RedditClient, parent: SortedObjectID | {kind: "none"
 function addT2(client: RedditClient, t2: Reddit.T2): void {
     const username = asLowercaseString(t2.data.name);
     client.addDirty(client.data.user_abouts.setAndList(stringify({username}), t2));
-    client.addDirty(client.data.subreddit_t5s.setAndList(stringify({sr_name: asLowercaseString(`u_${username}`)}), {kind: "t5", data: t2.data.subreddit}));
+    addItem(client, {kind: "t5", data: t2.data.subreddit}, true, {kind: "none"});
 }
 
 export async function loadPage2v2(
@@ -2134,14 +2264,23 @@ export async function loadPage2v2(
         addListing(client, data.parent, listing, data.allow_replies);
     }else if(data.kind === "subreddit_identity_and_sidebar") {
         const subreddit = data.sub;
-        const [widgets, about] = await Promise.all([
-            redditRequest(`/r/${ec(subreddit)}/api/widgets`, {method: "GET"}),
-            redditRequest(`/r/${ec(subreddit)}/about`, {method: "GET"}),
-        ]);
-        client.addDirty(client.data.subreddit_t5s.setAndList(stringify({sr_name: subreddit}), about));
-        client.addDirty(client.data.widgets.setAndList(stringify({sr_name: subreddit}), widgets));
-        for (const [key, widget] of Object.entries(widgets.items)) {
-            client.addDirty(client.data.widget.setAndList(stringify({subreddit: {sr_name: subreddit}, widget: key}), widget));
+        const base: BaseSubreddit = {sr_name: subreddit};
+        const need_widgets = !client.data.widgets.has(stringify(base));
+        const need_about = !client.data.subreddit_t5s.has(stringify(base));
+
+        const widgets_promise = need_widgets ? redditRequest(`/r/${ec(subreddit)}/api/widgets`, {method: "GET"}) : undefined;
+        const about_promise = need_about ? redditRequest(`/r/${ec(subreddit)}/about`, {method: "GET"}) : undefined;
+
+        // who needs Promise.all when you can just await the things manually
+        if (about_promise) {
+            addItem(client, await about_promise, true, {kind: "none"});
+        }
+        if (widgets_promise) {
+            const widgets = await widgets_promise;
+            client.addDirty(client.data.widgets.setAndList(stringify(base), widgets));
+            for (const [key, widget] of Object.entries(widgets.items)) {
+                client.addDirty(client.data.widget.setAndList(stringify({subreddit: base, widget: key}), widget));
+            }
         }
     }else if(data.kind === "view_post") {
         // *! on /duplicates, it probably uses a "?after=" url. TODO support that.
@@ -2317,6 +2456,9 @@ export async function sortPage2(client: RedditClient, group: Generic.Opaque<"sor
     } else if (group_dec.kind === "user") {
         if (option_dec.kind !== "user") throw new Error("sort user on non-user: " + option_dec.kind);
         client.addDirty(client.data.user_sorts.setAndList(stringify(group_dec.user), option_dec.sort));
+    } else if (group_dec.kind === "subreddits") {
+        if (option_dec.kind !== "subreddits") throw new Error("sort subreddits on non-subreddits: " + option_dec.kind);
+        client.addDirty(client.data.subreddits_sorts.setAndList(stringify(group_dec.srs), option_dec.sort));
     } else {
         throw new Error("todo sort: " + stringify(group_dec));
     }

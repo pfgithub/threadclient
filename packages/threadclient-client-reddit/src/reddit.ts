@@ -8,7 +8,7 @@ import { assertNever, assertUnreachable, encodeQuery, encodeURL, expectUnsupport
 import { getVredditSources } from "threadclient-preview-vreddit";
 import { loadPage2, submitPage2 } from "./page2_from_listing";
 import { path_router } from "./routing";
-import { getPagev2, initRedditClientData, RedditClientData, RedditLinkDescriptors, resolvers, sortPage2, trackRedditClientData, untrackRedditClientData } from "./reddit_page2_v2";
+import { getPagev2, initRedditClientData, RedditClientData, RedditLinkDescriptors, resolvers, sortPage2, SubredditsSort, trackRedditClientData, untrackRedditClientData } from "./reddit_page2_v2";
 
 const reddit_app_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
@@ -1532,14 +1532,7 @@ export type ParsedPath = {
     query: {[key: string]: string},
 } | {
     kind: "subreddits",
-    value: {
-        tab: "mine",
-        subtab: "subscriber" | "contributor" | "moderator",
-    } | {
-        tab: "new",
-    } | {
-        tab: "popular",
-    },
+    value: SubredditsSort,
 } | {
     kind: "submit",
     sub: SubrInfo,
@@ -3707,6 +3700,14 @@ export async function redditRequest<Path extends keyof Reddit.Requests, Extra = 
             const ratelimit_reset = v.headers.get("x-ratelimit-reset") ?? "1";
             const ratelimit_total = (+ratelimit_used) + (+ratelimit_remaining);
             console.log(`RATELIMIT: ${ratelimit_used} / ${ratelimit_total} (reset in ${ratelimit_reset}sec)`);
+
+            try {
+                const resp_url = new URL(v.url);
+                if (resp_url.pathname.startsWith("/login/.json")) {
+                    return [403, {error: "not logged in"} as Reddit.Requests[Path]["response"]] as const;
+                }
+            } catch (e) {}
+
 
             if (opts.viewresponse) opts.viewresponse(v);
             return [v.status, await v.json() as Reddit.Requests[Path]["response"]] as const;

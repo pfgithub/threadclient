@@ -357,24 +357,28 @@ path_router.with(["message"] as const, urlr => {
 userOrSubredditOrHome(path_router, "home");
 
 path_router.with(["mod"] as const, urlr => {
-    path_router.catchall(todo("not supported"));
+    urlr.catchall(todo("/mod not supported"));
 });
 
 path_router.with(["subreddits"] as const, urlr => {
     urlr.with(["mine"] as const, urlr => {
-        urlr.route([{tab: [null, "subscriber", "contributor", "moderator"] as const}], opts => ({
+        urlr.route([{tab: [null, "subscriber", "contributor", "moderator"] as const}], (opts): ParsedPath => ({
             kind: "subreddits",
             value: {
-                tab: "mine",
-                subtab: opts.tab ?? "subscriber",
+                path: ["subreddits", "mine", opts.tab ?? "subscriber"],
             },
         }));
     });
     urlr.route([{tab: [null, "new", "popular"] as const}], opts => ({
         kind: "subreddits",
-        value: {tab: opts.tab ?? "popular"},
+        value: {
+            path: ["subreddits", opts.tab ?? "popular"],
+        },
     }));
 });
+path_router.route(["users"] as const, opts => ({kind: "subreddits", value: {
+    path: ["users"],
+}}));
 
 path_router.with(["@"] as const, urlr => {
     // home:
@@ -386,7 +390,7 @@ path_router.with(["@"] as const, urlr => {
     // prefs: /prefs
 });
 
-path_router.catchall(todo("not supported"));
+path_router.catchall(todo("* not supported"));
 
 
 // /r/mod/about/:pageName(edited|modqueue|reports|spam|unmoderated)?
