@@ -1543,6 +1543,9 @@ export type ParsedPath = {
 } | {
     kind: "submit",
     sub: SubrInfo,
+} | {
+    kind: "special",
+    tab: "feeds",
 };
 
 export type SubrInfo = {

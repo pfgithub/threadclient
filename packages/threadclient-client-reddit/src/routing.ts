@@ -376,6 +376,16 @@ path_router.with(["subreddits"] as const, urlr => {
     }));
 });
 
+path_router.with(["@"] as const, urlr => {
+    // home:
+    urlr.route(["feeds"] as const, opts => ({
+        kind: "special",
+        tab: "feeds",
+    }));
+    // subscribed: /subreddits/mine (all subreddits: /subreddits, search: /subreddits/search)
+    // prefs: /prefs
+});
+
 path_router.catchall(todo("not supported"));
 
 
