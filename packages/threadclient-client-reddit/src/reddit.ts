@@ -544,7 +544,8 @@ async function getAuthorization() {
     return "Bearer "+access_token;
 }
 
-export function createSubscribeAction(subreddit: string, subscribers: number, you_subbed: boolean): Generic.CounterAction {
+export function createSubscribeAction(t5: Reddit.T5Data): Generic.CounterAction {
+    const is_user = t5.display_name.startsWith("u_");
     return {
         kind: "counter",
         client_id: client.id,
@@ -552,24 +553,24 @@ export function createSubscribeAction(subreddit: string, subscribers: number, yo
         increment: {
             icon: "join",
             color: "white",
-            label: "Subscribe",
-            undo_label: "Unsubscribe",
+            label: is_user ? "Follow" : "Subscribe",
+            undo_label: is_user ? "Unfollow" : "Unsubscribe",
             // done_label: "Subscribed"
         },
         decrement: null,
 
-        unique_id: "/subscribe/"+subreddit+"/",
+        unique_id: "/subscribe/"+t5.name+"/",
         time: Date.now(),
 
         style: "pill-filled",
         incremented_style: "pill-empty",
 
-        count_excl_you: you_subbed ? subscribers - 1 : subscribers,
-        you: you_subbed ? "increment" : undefined,
+        count_excl_you: is_user ? "hidden" : t5.user_is_subscriber ? t5.subscribers - 1 : t5.subscribers,
+        you: t5.user_is_subscriber ? "increment" : undefined,
 
         actions: {
-            increment: act_encoder.encode({kind: "subscribe", subreddit, direction: "sub"}),
-            reset: act_encoder.encode({kind: "subscribe", subreddit, direction: "unsub"}),
+            increment: act_encoder.encode({kind: "subscribe", subreddit: t5.display_name, direction: "sub"}),
+            reset: act_encoder.encode({kind: "subscribe", subreddit: t5.display_name, direction: "unsub"}),
         },
     };
 }
@@ -628,7 +629,7 @@ function sidebarWidgetToGenericWidgetTry(data: Reddit.Widget, subreddit: string)
                     icon: sub.communityIcon || sub.iconUrl || undefined,
                     name: {kind: "text", text: "r/"+sub.name},
                     click: {kind: "link", url: "/r/"+sub.name},
-                    action: createSubscribeAction(sub.name, sub.subscribers, sub.isSubscribed),
+                    // action: createSubscribeAction(sub.name, sub.subscribers, sub.isSubscribed),
                 };
                 expectUnsupported(sub.type);
                 return {
@@ -784,7 +785,7 @@ function customIDCardWidget(t5: Reddit.T5, subreddit: string): Generic.ContentNo
             description: t5.data.public_description,
         },
         actions_bottom: [
-            createSubscribeAction(subreddit, t5.data.subscribers, t5.data.user_is_subscriber ?? false),
+            createSubscribeAction(t5.data),
             {
                 kind: "link",
                 url: "/r/"+subreddit+"/submit?--tc-view=page2",
@@ -929,7 +930,7 @@ export function subredditHeaderExists(subinfo: SubInfo): Generic.FilledIdentityC
             client_id: client.id,
         },
         actions: {
-            main_counter: subinfo.sub_t5 ? createSubscribeAction(subinfo.subreddit, subinfo.sub_t5.data.subscribers, subinfo.sub_t5.data.user_is_subscriber ?? false) : null,
+            main_counter: subinfo.sub_t5 ? createSubscribeAction(subinfo.sub_t5.data) : null,
         },
         menu: res_menu.length === 1 ? null : res_menu,
         raw_value: subinfo,
@@ -2413,7 +2414,7 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
                 markdown_format: "reddit_html",
             },
             actions: [
-                createSubscribeAction(listing.url.replace("/r/", "").replace("/u/", "u_"), listing.subscribers, listing.user_is_subscriber ?? false),
+                createSubscribeAction(listing),
             ],
             default_collapsed: true,
         };
@@ -2574,32 +2575,7 @@ export function userIdentityCard(user: Reddit.T2Data): Generic.FilledIdentityCar
             markdown_format: "none",
         },
         actions: {
-            main_counter: {
-                kind: "counter",
-                client_id: client.id,
-    
-                increment: {
-                    icon: "join",
-                    color: "white",
-                    label: "Follow",
-                    undo_label: "Unfollow",
-                    // _label: "Following"
-                },
-                decrement: null,
-    
-                unique_id: "/follow/"+user.name+"/",
-                time: Date.now(),
-    
-                style: "pill-filled",
-                incremented_style: "pill-empty",
-    
-                count_excl_you: user.is_friend ? user.subreddit.subscribers - 1 : user.subreddit.subscribers,
-                you: user.is_friend ? "increment" : undefined,
-    
-                actions: {
-                    error: "TODO implement add friend",
-                },
-            },
+            main_counter: createSubscribeAction(user.subreddit),
         },
         menu: null,
         raw_value: user,

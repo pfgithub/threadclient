@@ -1311,9 +1311,9 @@ export const resolvers: {
                             card: {
                                 name_raw: "r/"+community.name,
                                 pfp: {url: community.communityIcon || community.iconUrl},
-                                main_counter: createSubscribeAction(
-                                    sub_name, community.subscribers, community.isSubscribed,
-                                ),
+                                // main_counter: createSubscribeAction(
+                                //     sub_name, community.subscribers, community.isSubscribed,
+                                // ),
                                 url: "/r/"+community.name,
                                 client_id,
                                 raw_value: community,
