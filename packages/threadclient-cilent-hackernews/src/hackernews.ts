@@ -161,6 +161,45 @@ type BaseItem = {id: number};
 function itemUrl(base: BaseItem): string {
     return updateQuery("/item", {id: "" + base.id});
 }
+
+const resolvers2 = {
+    client(client: HnClient, base: BaseClient): {post: Generic.Post} {
+        return {
+            post: {
+                kind: "post",
+                content: {
+                    kind: "client",
+                    navbar: {
+                        actions: [
+                            {kind: "link", client_id, url: "/", text: "Home"},
+                            {kind: "link", client_id, url: "/front", text: "Past"},
+                            {kind: "link", client_id, url: "/newcomments", text: "Comments"},
+                        ],
+                        inboxes: [],
+                        client_id,
+                    },
+                },
+                internal_data: 0,
+                parent: null,
+                replies: null,
+                url: null,
+                client_id,
+            },
+        };
+    }
+} satisfies Record<string, Resolver<any>>;
+
+type Resolver<T, U extends Record<string, any> = Record<string, any>> = (client: HnClient, base: T) => U;
+type GetResolver<T extends ResolverL1> = (typeof resolvers2)[T]; 
+type ResolverBase<T extends ResolverL1> = GetResolver<T> extends Resolver<infer U> ? U : never;
+type ResolverResult<T extends ResolverL1, U extends ResolverL2<T>> = ReturnType<GetResolver<T>>[U];
+type ResolverL2<T extends ResolverL1> = keyof ReturnType<GetResolver<T>>;
+type ResolverL1 = keyof typeof resolvers2;
+function getLink2<A extends ResolverL1, B extends ResolverL2<NoInfer<A>>>(a: A, b: B, c: ResolverBase<NoInfer<A>>): ResolverResult<NoInfer<A>, NoInfer<B>> {
+    return 0 as any;
+}
+getLink2("client", "post", {});
+
 const resolvers: {
     // TODO: eventually once all are migrated and we have upgraded loaders, this can return just T instead of ReadLinkResult<T>
     [key in keyof HnLinkDescriptors]: (client: HnClient, base: HnLinkDescriptors[key]["data"]) => Generic.ReadLinkResult<HnLinkDescriptors[key]["content"]> | null
