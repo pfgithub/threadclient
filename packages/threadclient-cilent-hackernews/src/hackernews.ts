@@ -52,7 +52,7 @@ const opaque_sort_option = encoderGenerator<SortOptionData, "sort_option">("sort
 type BaseClient = {_?: undefined};
 function clientAsParent(content: Generic.Page2Content, base: BaseClient): Generic.PostParent {
     return {
-        loader: Generic.p2.prefilledVerticalLoader(content, HnClient.fromContent(content).getLink("client", base), undefined),
+        loader: Generic.p2.prefilledVerticalLoader(content, HnClient.fromContent(content).getLink2("client", "post", base), undefined),
     };
 }
 
@@ -81,27 +81,6 @@ type HnLinkDescriptors = {
     // (if we put type annotations on the parameters)
     // that would be nice
 
-    client: {
-        data: BaseClient,
-        content: Generic.Post,
-    },
-
-    listing: {
-        data: BaseListing,
-        content: Generic.Post,
-    },
-    listing_request: {
-        data: BaseListing,
-        content: Generic.Opaque<"loader">,
-    },
-    listing_replies: {
-        data: BaseListing,
-        content: Generic.HorizontalLoaded,
-    },
-    listing_sort_group: {
-        data: BaseListing,
-        content: Generic.SortGroup,
-    },
     listing_sort_menu: {
         data: {_?: undefined},
         content: Generic.SortMenu,
@@ -161,11 +140,17 @@ type BaseItem = {id: number};
 function itemUrl(base: BaseItem): string {
     return updateQuery("/item", {id: "" + base.id});
 }
+/** @deprecated */
+const not_loaded_obj: never = Symbol("not_loaded") as never;
 
+/**
+ * option 1 is like this, listing returns four things. they all have to be functions for dependency tracking reasons
+ * option 2 is each returns one. that would be simpler and pretty non-annoying but requires duplicating some stuff
+ */
 const resolvers2 = {
-    client(client: HnClient, base: BaseClient): {post: Generic.Post} {
+    client(client: HnClient, base: BaseClient): {post: () => Generic.Post} {
         return {
-            post: {
+            post: () => ({
                 kind: "post",
                 content: {
                     kind: "client",
@@ -184,53 +169,20 @@ const resolvers2 = {
                 replies: null,
                 url: null,
                 client_id,
-            },
+            }),
         };
-    }
-} satisfies Record<string, Resolver<any>>;
-
-type Resolver<T, U extends Record<string, any> = Record<string, any>> = (client: HnClient, base: T) => U;
-type GetResolver<T extends ResolverL1> = (typeof resolvers2)[T]; 
-type ResolverBase<T extends ResolverL1> = GetResolver<T> extends Resolver<infer U> ? U : never;
-type ResolverResult<T extends ResolverL1, U extends ResolverL2<T>> = ReturnType<GetResolver<T>>[U];
-type ResolverL2<T extends ResolverL1> = keyof ReturnType<GetResolver<T>>;
-type ResolverL1 = keyof typeof resolvers2;
-function getLink2<A extends ResolverL1, B extends ResolverL2<NoInfer<A>>>(a: A, b: B, c: ResolverBase<NoInfer<A>>): ResolverResult<NoInfer<A>, NoInfer<B>> {
-    return 0 as any;
-}
-getLink2("client", "post", {});
-
-const resolvers: {
-    // TODO: eventually once all are migrated and we have upgraded loaders, this can return just T instead of ReadLinkResult<T>
-    [key in keyof HnLinkDescriptors]: (client: HnClient, base: HnLinkDescriptors[key]["data"]) => Generic.ReadLinkResult<HnLinkDescriptors[key]["content"]> | null
-} = {
-    client(client, base) {
-        return result({error: null, value: {
-            kind: "post",
-            content: {
-                kind: "client",
-                navbar: {
-                    actions: [
-                        {kind: "link", client_id, url: "/", text: "Home"},
-                        {kind: "link", client_id, url: "/front", text: "Past"},
-                        {kind: "link", client_id, url: "/newcomments", text: "Comments"},
-                    ],
-                    inboxes: [],
-                    client_id,
-                },
-            },
-            internal_data: 0,
-            parent: null,
-            replies: null,
-            url: null,
-            client_id,
-        }});
     },
-
-    listing(client, base) {
+    listing(client: HnClient, base: BaseListing): {
+        post: () => Generic.Post,
+        request: () => Generic.Opaque<"loader">,
+        replies: () => Generic.HorizontalLoaded,
+        sort_group: () => Generic.SortGroup,
+    } {
         const content = client.dirty_content;
         const url = updateQuery("/", {});
-        return result({error: null, value: {
+        const sort = () => client.getListingSort(base);
+        const full = () => client.data.listing_id_to_listing.get(sort());
+        return {post: () => ({
             kind: "post",
             content: {
                 kind: "page",
@@ -264,43 +216,46 @@ const resolvers: {
                 display: "repivot_list",
                 loader: {
                     kind: "horizontal_loader",
-                    key: client.getLink("listing_replies", base),
-                    request: client.getLink("listing_request", base),
+                    key: client.getLink2("listing", "replies", base),
+                    request: client.getLink2("listing", "request", base),
 
                     load_count: null,
                     autoload: true,
                     client_id,
                 },
-                sort_group: client.getLink("listing_sort_group", base),
+                sort_group: client.getLink2("listing", "sort_group", base),
                 sort_menu: client.getLink("listing_sort_menu", {}),
             },
             url,
             client_id,
-        }});
-    },
-    listing_request(client, base) {
-        const sort = client.getListingSort(base);
-        return result({error: null, value: opaque_loader.encode({
+        }), request: () => opaque_loader.encode({
             kind: "listing",
             listing: base,
-            sort,
-        })});
-    },
-    listing_replies(client, base) {
-        const sort = client.getListingSort(base);
-        const full = client.data.listing_id_to_listing.get(sort);
-        if (!full) return null;
-        return result({error: null, value: full.map((id): Generic.HorizontalLoader => {
-            return itemHorizontalLoader(client, {id});
-        })});
-    },
-    listing_sort_group(client, base) {
-        const sort = client.getListingSort(base);
-        return result({error: null, value: {
-            selected: {key: sort},
+            sort: sort(),
+        }), replies: () => {
+            const f = full();
+            if (!f) return not_loaded_obj;
+            return f.map((id): Generic.HorizontalLoader => {
+                return itemHorizontalLoader(client, {id});
+            });
+        }, sort_group: () => ({
+            selected: {key: sort()},
             group: opaque_sort_group.encode({kind: "listing", listing: base}),
-        }});  
+        })};
     },
+} satisfies Record<string, Resolver<any>>;
+
+type Resolver<T, U extends Record<string, () => any> = Record<string, () => any>> = (client: HnClient, base: T) => U;
+type GetResolver<T extends ResolverL1> = (typeof resolvers2)[T]; 
+type ResolverBase<T extends ResolverL1> = GetResolver<T> extends Resolver<infer U> ? U : never;
+type ResolverResult<T extends ResolverL1, U extends ResolverL2<T>> = ReturnType<ReturnType<GetResolver<T>>[U]>;
+type ResolverL2<T extends ResolverL1> = keyof ReturnType<GetResolver<T>>;
+type ResolverL1 = keyof typeof resolvers2;
+
+const resolvers: {
+    // TODO: eventually once all are migrated and we have upgraded loaders, this can return just T instead of ReadLinkResult<T>
+    [key in keyof HnLinkDescriptors]: (client: HnClient, base: HnLinkDescriptors[key]["data"]) => Generic.ReadLinkResult<HnLinkDescriptors[key]["content"]> | null
+} = {
     listing_sort_menu(client, base) {
         const item = (label: string, value: HN.ListingType): Generic.SortOption => (
             {label, value: {kind: "single", key: value, request: opaque_sort_option.encode({kind: "listing", sort: value})}}
@@ -391,8 +346,8 @@ const resolvers: {
             internal_data: full,
             parent: {loader: {
                 kind: "vertical_loader",
-                key: parent_id != null ? client.getLink("item", {id: parent_id}) : client.getLink("listing", {}),
-                unfilled_parent: client.getLink("listing", {}),
+                key: parent_id != null ? client.getLink("item", {id: parent_id}) : client.getLink2("listing", "post", {}),
+                unfilled_parent: client.getLink2("listing", "post", {}),
                 request: parent_id != null ? client.getLink("item_request", {id: parent_id}) : Generic.p2.createSymbolLinkToError(content, "hn-full_item-noparent", full),
                 client_id,
             }},
@@ -547,7 +502,7 @@ const resolvers: {
             },
             internal_data: base,
             replies: null,
-            parent: {loader: Generic.p2.prefilledVerticalLoader(content, client.getLink("listing", base), undefined)},
+            parent: {loader: Generic.p2.prefilledVerticalLoader(content, client.getLink2("listing", "post", base), undefined)},
             url: `/@?obj=${encodeURIComponent(client.getLink("about", base) as string)}`,
             client_id,
         }};
@@ -594,6 +549,9 @@ class HnClient extends ThreadClientHelper {
     getLink<T extends keyof HnLinkDescriptors>(type: T, value: HnLinkDescriptors[NoInfer<T>]["data"]): Generic.Link<HnLinkDescriptors[NoInfer<T>]["content"]> {
         return `${JSON.stringify([type, value])}` as Generic.Link<HnLinkDescriptors[NoInfer<T>]["content"]>;
     }
+    getLink2<A extends ResolverL1, B extends ResolverL2<NoInfer<A>>>(a: A, b: B, c: ResolverBase<NoInfer<A>>): Generic.Link<ResolverResult<NoInfer<A>, NoInfer<B>>> {
+        return `${JSON.stringify([a, b, c])}` as Generic.Link<ResolverResult<NoInfer<A>, NoInfer<B>>>;
+    }
     private async fetchListing(listing: HN.ListingType): Promise<void> {
         const resp = await hnRequest(`/v0/${listing as HN.PathBit}`, {method: "GET"});
         this.addDirty(this.data.listing_id_to_listing.setAndList(listing, resp));
@@ -613,12 +571,18 @@ class HnClient extends ThreadClientHelper {
         if (typeof link === "symbol" || !link.startsWith("[")) {
             return Generic.readLink(this.dirty_content, link) ?? Generic.readLink(this.stored_content, link);
         }
-        const [type, value_raw] = JSON.parse(link as string) as [keyof HnLinkDescriptors, unknown];
+        const [type, value_raw, extra] = JSON.parse(link as string) as [keyof HnLinkDescriptors, unknown, unknown];
         this.data.id_to_item.beginTracking(link);
         this.data.id_to_user.beginTracking(link);
         this.data.listing_id_to_listing.beginTracking(link);
         this.data.listing_to_sort.beginTracking(link);
         try {
+            if (extra) {
+                const resobj = resolvers2[type as ResolverL1](this, extra as any) as Record<string, () => unknown>;
+                const ret: T = resobj[value_raw as string]!() as T;
+                if (ret === not_loaded_obj) return null;
+                return {error: null, value: ret};
+            }
             return resolvers[type](this, value_raw as any) as Generic.ReadLinkResult<T>;
         } catch(e) {
             console.error(e);
@@ -641,7 +605,7 @@ class HnClient extends ThreadClientHelper {
 
         if (parsed.kind === "listing") {
             const base_listing: BaseListing = {};
-            const pivot = this.getLink("listing", base_listing);
+            const pivot = this.getLink2("listing", "post", base_listing);
             this.addDirty(this.data.listing_to_sort.setAndList(stringify(base_listing), parsed.listing));
             return {pivot, dirty: this.takeDirty()};
         } else if (parsed.kind === "item") {
