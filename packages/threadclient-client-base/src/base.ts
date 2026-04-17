@@ -71,6 +71,46 @@ export abstract class ThreadClient implements ThreadClientImplements {
     abstract dupe(): {client: ThreadClient, dirty: Generic.Link<unknown>[]};
 }
 
+export class ObservableData<T extends {[key: string]: [unknown, unknown]}, Tracking> {
+    private _entries: Map<string | number | symbol, ObservableMap<unknown, unknown, Tracking>>;
+    private _tracking?: {key: Tracking};
+    constructor(prev?: ObservableData<T, Tracking>) {
+        this._entries = new Map();
+        for (const [k, v] of prev?._entries ?? []) {
+            this._entries.set(k, new ObservableMap(v));
+        }
+    }
+
+    private _getMap<Str extends keyof T>(str: Str): ObservableMap<T[NoInfer<Str>][0], T[NoInfer<Str>][1], Tracking> {
+        if (this._entries.has(str)) return this._entries.get(str)! as ObservableMap<T[Str][0], T[Str][1], Tracking>;
+        const nm = new ObservableMap<T[Str][0], T[Str][1], Tracking>();
+        if (this._tracking) nm.beginTracking(this._tracking.key);
+        this._entries.set(str, nm);
+        return nm;
+    }
+
+    get<Str extends keyof T>(str: Str, key: T[NoInfer<Str>][0]): T[NoInfer<Str>][1] {
+        return this._getMap(str).get(key);
+    }
+    has<Str extends keyof T>(str: Str, key: T[NoInfer<Str>][0]): boolean {
+        return this._getMap(str).has(key);
+    }
+    setAndList<Str extends keyof T>(str: Str, key: T[NoInfer<Str>][0], value: T[NoInfer<Str>][1]): Set<Tracking> {
+        return this._getMap(str).setAndList(key, value);
+    }
+
+    beginTracking(key: Tracking): void {
+        if (this._tracking !== undefined) throw new Error("should not be tracking");
+        this._tracking = {key};
+        for (const entry of this._entries.values()) entry.beginTracking(key);
+    }
+    endTracking(): void {
+        if (this._tracking === undefined) throw new Error("should be tracking");
+        this._tracking = undefined;
+        for (const entry of this._entries.values()) entry.endTracking();
+    }
+}
+
 export class ObservableMap<T, U, Tracking> {
     private _map: Map<T, U>;
     private _dependencies: Map<T, Set<Tracking>>;
@@ -104,16 +144,6 @@ export class ObservableMap<T, U, Tracking> {
         if (this._tracking === undefined) return;
         const deps = this._deps(key);
         deps.add(this._tracking.key);
-    }
-
-    // https://github.com/tc39/proposal-upsert
-    getOrInsert(key: T, value: U): U {
-        if (!this._map.has(key)) this._map.set(key, value);
-        return this._map.get(key)!;
-    }
-    getOrInsertComputed(key: T, value: (key: T) => U): U {
-        if (!this._map.has(key)) this._map.set(key, value(key));
-        return this._map.get(key)!;
     }
 
     track(key: Tracking): {[Symbol.dispose]: () => void} {
@@ -293,6 +323,11 @@ export class DeprecatedClient extends ThreadClient {
         return {client: result, dirty: []};
     }
 }
+/**
+ * would be nice to replace with https://github.com/tc39/proposal-record-tuple
+ * or https://github.com/tc39/proposal-composites
+ * but that will be years from now, if ever
+ */
 export type Stringified<T> = string & {__is_stringified: T};
 export function stringify<T>(v: NoInfer<T>): Stringified<T> {
     return JSON.stringify(v) as Stringified<T>;

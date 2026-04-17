@@ -1,6 +1,6 @@
 
 import * as Generic from "api-types-generic";
-import { DeprecatedClient, encoderGenerator, ObservableMap, Stringified, stringify, ThreadClient, ThreadClientHelper } from "threadclient-client-base";
+import { DeprecatedClient, encoderGenerator, ObservableData, ObservableMap, Stringified, stringify, ThreadClient, ThreadClientHelper } from "threadclient-client-base";
 import { assertNever, assertUnreachable, result, splitURL, updateQuery } from "tmeta-util";
 import * as HN from "./api_types";
 import { path_router } from "./routing";
@@ -88,8 +88,10 @@ const not_loaded_obj: never = Symbol("not_loaded") as never;
 /*
 // alternative
 type Resolver2<Base, Result> = (client: HnClient, base: BaseClient) => Generic.Link<Result>;
-function addResolver<Base, Result>(name: string, cb: (client: HnClient, base: Base) => Result): Resolver2<NoInfer<Base>, NoInfer<Result>> {
-
+function addResolver<Base, Result>(id: string, cb: (client: HnClient, base: Base) => Result): Resolver2<NoInfer<Base>, NoInfer<Result>> {
+    if (resolvers.has(id)) throw new Error("duplicate resolver for id: " + id);
+    resolvers.set(id, cb);
+    return () => linkGenerator(id);
 }
 const client = addResolver("client", (client, base: BaseClient): Generic.Post => {
 });
@@ -179,7 +181,7 @@ const resolvers = {
     },
     listing_replies(client, base: BaseListing): Generic.HorizontalLoaded {
         const sort = client.getListingSort(base);
-        const full = client.data.listing_id_to_listing.get(sort);
+        const full = client.data.get("listing_id_to_listing", sort);
         const f = full;
         if (!f) return not_loaded_obj;
         return f.map((id): Generic.HorizontalLoader => {
@@ -210,7 +212,7 @@ const resolvers = {
     },
     item: (client, base: BaseItem): Generic.Post => {
         const content = client.dirty_content;
-        const full = client.data.id_to_item.get(base.id);
+        const full = client.data.get("id_to_item", base.id);
         if (!full) return not_loaded_obj;
         const url = itemUrl(base);
         const body: Generic.Body[] = [];
@@ -302,11 +304,11 @@ const resolvers = {
         };
     },
     item_horizontal(client, base: BaseItem): Generic.HorizontalLoaded {
-        if (!client.data.id_to_item.has(base.id)) return not_loaded_obj;
+        if (!client.data.has("id_to_item", base.id)) return not_loaded_obj;
         return [client.getLink("item", base)];
     },
     item_replies(client, base: BaseItem): Generic.HorizontalLoaded {
-        const full = client.data.id_to_item.get(base.id);
+        const full = client.data.get("id_to_item", base.id);
         if (!full) return not_loaded_obj;
         return full.kids?.map((ch): Generic.HorizontalLoader => itemHorizontalLoader(client, {id: ch})) ?? [];
     },
@@ -324,7 +326,7 @@ const resolvers = {
         };
     },
     user_card(client, base: BaseUser): Generic.FilledIdentityCard {
-        const full = client.data.id_to_user.get(base.id);
+        const full = client.data.get("id_to_user", base.id);
 
         if (full == null) return not_loaded_obj;
         
@@ -386,7 +388,7 @@ const resolvers = {
         };
     },
     user_replies(client, base: BaseUser): Generic.HorizontalLoaded {
-        const full = client.data.id_to_user.get(base.id);
+        const full = client.data.get("id_to_user", base.id);
         if (!full) return not_loaded_obj;
         return full.submitted?.map((ch): Generic.HorizontalLoader => itemHorizontalLoader(client, {id: ch})) ?? [];
     },
@@ -457,21 +459,16 @@ function itemHorizontalLoader(client: HnClient, base: BaseItem): Generic.Horizon
 }
 
 class HnClient extends ThreadClientHelper {
-    data: {
-        listing_id_to_listing: ObservableMap<HN.ListingType, HN.Listing, Generic.Link<unknown>>,
-        id_to_item: ObservableMap<number, HN.Item, Generic.Link<unknown>>,
-        id_to_user: ObservableMap<string, HN.User, Generic.Link<unknown>>,
-        listing_to_sort: ObservableMap<Stringified<BaseListing>, HN.ListingType, Generic.Link<unknown>>,
-    };
+    data: ObservableData<{
+        listing_id_to_listing: [HN.ListingType, HN.Listing],
+        id_to_item: [number, HN.Item],
+        id_to_user: [string, HN.User],
+        listing_to_sort: [Stringified<BaseListing>, HN.ListingType],
+    }, Generic.Link<unknown>>;
 
     constructor(prev?: HnClient) {
         super(client_id, prev);
-        this.data = {
-            listing_id_to_listing: new ObservableMap(prev?.data.listing_id_to_listing),
-            id_to_item: new ObservableMap(prev?.data.id_to_item),
-            id_to_user: new ObservableMap(prev?.data.id_to_user),
-            listing_to_sort: new ObservableMap(prev?.data.listing_to_sort),
-        };
+        this.data = new ObservableData(prev?.data);
     }
     dupe(): { client: HnClient; dirty: Generic.Link<unknown>[]; } {
         const res = new HnClient(this);
@@ -479,7 +476,7 @@ class HnClient extends ThreadClientHelper {
     }
 
     getListingSort(listing: BaseListing): HN.ListingType {
-        return this.data.listing_to_sort.get(stringify(listing)) ?? "topstories";
+        return this.data.get("listing_to_sort", stringify(listing)) ?? "topstories";
     }
 
     getLink<Key extends ResolverL1>(key: Key, base: ResolverBase<NoInfer<Key>>): Generic.Link<ResolverResult<NoInfer<Key>>> {
@@ -487,17 +484,17 @@ class HnClient extends ThreadClientHelper {
     }
     private async fetchListing(listing: HN.ListingType): Promise<void> {
         const resp = await hnRequest(`/v0/${listing as HN.PathBit}`, {method: "GET"});
-        this.addDirty(this.data.listing_id_to_listing.setAndList(listing, resp));
+        this.addDirty(this.data.setAndList("listing_id_to_listing", listing, resp));
     }
     private async fetchItem(id: number): Promise<Generic.Link<Generic.Post>> {
         const resp = await hnRequest(`/v0/item/${(""+id) as HN.PathBit}`, {method: "GET"});
-        this.addDirty(this.data.id_to_item.setAndList(id, resp));
+        this.addDirty(this.data.setAndList("id_to_item", id, resp));
 
         return this.getLink("item", {id});
     }
     private async fetchUser(id: string): Promise<void> {
         const resp = await hnRequest(`/v0/user/${id as HN.PathBit}`, {method: "GET"});
-        this.addDirty(this.data.id_to_user.setAndList(id, resp));
+        this.addDirty(this.data.setAndList("id_to_user", id, resp));
     }
     
     resolveLinkOld<T>(link: Generic.Link<T>): Generic.ReadLinkResult<T> | null {
@@ -505,10 +502,7 @@ class HnClient extends ThreadClientHelper {
             return Generic.readLink(this.dirty_content, link) ?? Generic.readLink(this.stored_content, link);
         }
         const [type, value_raw] = JSON.parse(link as string) as [ResolverL1, unknown, unknown];
-        this.data.id_to_item.beginTracking(link);
-        this.data.id_to_user.beginTracking(link);
-        this.data.listing_id_to_listing.beginTracking(link);
-        this.data.listing_to_sort.beginTracking(link);
+        this.data.beginTracking(link);
         try {
             const ret = resolvers[type](this, value_raw as any);
             if (ret === not_loaded_obj) return null;
@@ -518,10 +512,7 @@ class HnClient extends ThreadClientHelper {
             return {error: (e as Error).toString(), value: null};
         } finally {
             // oops need to update esbuild to use 'using'
-            this.data.id_to_item.endTracking();
-            this.data.id_to_user.endTracking();
-            this.data.listing_id_to_listing.endTracking();
-            this.data.listing_to_sort.endTracking();
+            this.data.endTracking();
         }
     }
 
@@ -535,7 +526,7 @@ class HnClient extends ThreadClientHelper {
         if (parsed.kind === "listing") {
             const base_listing: BaseListing = {};
             const pivot = this.getLink("listing", base_listing);
-            this.addDirty(this.data.listing_to_sort.setAndList(stringify(base_listing), parsed.listing));
+            this.addDirty(this.data.setAndList("listing_to_sort", stringify(base_listing), parsed.listing));
             return {pivot, dirty: this.takeDirty()};
         } else if (parsed.kind === "item") {
             const pivot = await this.fetchItem(parsed.id);
@@ -565,7 +556,7 @@ class HnClient extends ThreadClientHelper {
         const group_dec = opaque_sort_group.decode(group);
         const option_dec = opaque_sort_option.decode(option);
         if (group_dec.kind === "listing" && option_dec.kind === "listing") {
-            this.addDirty(this.data.listing_to_sort.setAndList(stringify(group_dec.listing), option_dec.sort));
+            this.addDirty(this.data.setAndList("listing_to_sort", stringify(group_dec.listing), option_dec.sort));
         } else {
             throw new Error("TODO");
         }
