@@ -159,6 +159,9 @@ export function renderPage2(content: Page2ContentManager, query: string): HideSh
                         // TODO: only when visible
                         document.title = res.title + " | " + "ThreadClient";
                     });
+                    createEffect(() => {
+                        // history.replaceState({}, "", res.url); // TODO: add this. we need to change the history management stuff though.
+                    });
                     // TODO: set current url in url bar to the res url but only when visible
 
                     return <>{() => res.children}</>;

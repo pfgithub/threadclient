@@ -577,7 +577,7 @@ function useFlattenMain(pivot_link: Generic.Link<Generic.Post>, pivot: Generic.P
         get url() {
             const focus = pivot;
             if (!focus.url) return "Enourl";
-            return "/" + focus.client_id + "/" + hprc.content.view2(focus.url);
+            return "#" + focus.client_id + hprc.content.view2(focus.url);
         },
         get body() {
             return bodyCh();
