@@ -8,7 +8,7 @@ import { assertNever, assertUnreachable, encodeQuery, encodeURL, expectUnsupport
 import { getVredditSources } from "threadclient-preview-vreddit";
 import { loadPage2, submitPage2 } from "./page2_from_listing";
 import { path_router } from "./routing";
-import { getPagev2, initRedditClientData, RedditClientData, RedditLinkDescriptors, resolvers, sortPage2, SubredditsSort, trackRedditClientData, untrackRedditClientData } from "./reddit_page2_v2";
+import { getPagev2, initRedditClientData, not_loaded_obj, RedditClientData, ResolverBase, ResolverL1, ResolverResult, resolvers, sortPage2, SubredditsSort, trackRedditClientData, untrackRedditClientData } from "./reddit_page2_v2";
 
 const reddit_app_id = "biw1k0YZmDUrjg";
 const redirect_uri = "https://thread.pfg.pw/login/reddit";
@@ -2749,9 +2749,8 @@ export class RedditClient extends ThreadClientHelper {
         return {client: res, dirty: res.takeDirty()};
     }
     
-    getLink<T extends keyof RedditLinkDescriptors>(type: T, value: RedditLinkDescriptors[NoInfer<T>]["data"]): Generic.Link<RedditLinkDescriptors[NoInfer<T>]["content"]> {
-        console.log("getLink", type, JSON.stringify(value));
-        return `${JSON.stringify([type, value])}` as Generic.Link<RedditLinkDescriptors[NoInfer<T>]["content"]>;
+    getLink<Key extends ResolverL1>(key: Key, base: ResolverBase<NoInfer<Key>>): Generic.Link<ResolverResult<NoInfer<Key>>> {
+        return `${JSON.stringify([key, base])}` as Generic.Link<ResolverResult<NoInfer<Key>>>;
     }
 
     hasPage2(): boolean {
@@ -2782,9 +2781,11 @@ export class RedditClient extends ThreadClientHelper {
             return Generic.readLink(this.dirty_content, link) ?? Generic.readLink(this.stored_content, link);
         }
         trackRedditClientData(this.data, link);
-        const [type, value_raw] = JSON.parse(link as string) as [keyof RedditLinkDescriptors, unknown];
+        const [type, value_raw] = JSON.parse(link as string) as [ResolverL1, unknown, unknown];
         try {
-            return resolvers[type](this, value_raw as any) as Generic.ReadLinkResult<T>;
+            const ret = resolvers[type](this, value_raw as any);
+            if (ret === not_loaded_obj) return null;
+            return {error: null, value: ret as T};
         } catch(e) {
             console.error(e);
             return {error: (e as Error).toString(), value: null};

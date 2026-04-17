@@ -551,153 +551,6 @@ type BaseSubreddit = {
     sr_name: null | LowercaseString,
 };
 type BaseMore2 = {parent_fullname: string, first_child_id: string | null, sort: PostSort};
-export type RedditLinkDescriptors = {
-    // TODO: most of these should not need a sort method! sort should only be for replies, where the client chooses which one to use
-    client: {
-        data: {_?: undefined},
-        content: Generic.Post,
-    },
-    item: {
-        data: BaseItem, // we might be able to remove the on_post on this? sort will be a problem that we will have to solve
-        content: Generic.Post,
-    },
-    comment_sort_menu: {
-        data: {_?: undefined},
-        content: Generic.SortMenu,
-    },
-    comment_sort: {
-        data: BaseItem,
-        content: Generic.SortGroup,
-    },
-    comment_parent_request: {
-        data: {subreddit: LowercaseString, post_fullname: string, parent_comment_fullname: string | null},
-        content: Generic.Opaque<"loader">,
-    },
-    item_replies_request: {
-        data: {subreddit: LowercaseString, post_fullname: string, comment_fullname: string | null},
-        content: Generic.Opaque<"loader">,
-    },
-    replies: {
-        data: ObjectID,
-        content: Generic.HorizontalLoaded,
-    },
-    loadmore_request: {
-        data: {base: BaseMore2, sort: Sortv | "infer", post_fullname: string},
-        content: Generic.Opaque<"loader">,
-    },
-    subreddit: {
-        data: BaseSubreddit,
-        content: Generic.Post,
-    },
-    subreddit_replies_request: {
-        data: BaseSubreddit,
-        content: Generic.Opaque<"loader">,
-    },
-    subreddit_card: {
-        data: BaseSubreddit,
-        content: Generic.FilledIdentityCard,
-    },
-    subreddit_widgets: {
-        data: BaseSubreddit,
-        content: Generic.HorizontalLoaded,
-    },
-    subreddit_identity_request: {
-        data: BaseSubreddit,
-        content: Generic.Opaque<"loader">,
-    },
-    subreddit_oldsidebar_widget: {
-        data: BaseSubreddit,
-        content: Generic.Post,
-    },
-    subreddit_sort_menu: {
-        data: {_?: undefined},
-        content: Generic.SortMenu,
-    },
-    subreddit_sort: {
-        data: BaseSubreddit,
-        content: Generic.SortGroup,
-    },
-    widget: {
-        data: BaseWidget,
-        content: Generic.Post,
-    },
-    user: {
-        data: BaseUser,
-        content: Generic.Post,
-    },
-    user_card: {
-        data: BaseUser,
-        content: Generic.FilledIdentityCard,
-    },
-    user_about: {
-        data: BaseUser,
-        content: Generic.Post,
-    },
-    user_sidebar: {
-        data: BaseUser,
-        content: Generic.HorizontalLoaded,
-    },
-    user_identity_request: {
-        data: BaseUser,
-        content: Generic.Opaque<"loader">,
-    },
-    user_trophies_request: {
-        data: BaseUser,
-        content: Generic.Opaque<"loader">,
-    },
-    user_trophies: {
-        data: BaseUser,
-        content: Generic.HorizontalLoaded,
-    },
-    user_trophy: {
-        data: BaseTrophy,
-        content: Generic.Post,
-    },
-    user_moderated_subreddits_request: {
-        data: BaseUser,
-        content: Generic.Opaque<"loader">,
-    },
-    user_replies_request: {
-        data: BaseUser,
-        content: Generic.Opaque<"loader">,
-    },
-    user_sort_group: {
-        data: BaseUser,
-        content: Generic.SortGroup,
-    },
-    user_sort_menu: {
-        data: {_?: undefined},
-        content: Generic.SortMenu,
-    },
-    wiki: {
-        data: BaseSubreddit,
-        content: Generic.Post,
-    },
-    wikipage: {
-        data: BaseRevisedWikipage,
-        content: Generic.Post,
-    },
-    wikipage_request: {
-        data: BaseRevisedWikipage,
-        content: Generic.Opaque<"loader">,
-    },
-    subreddits: {
-        data: BaseSubreddits,
-        content: Generic.Post,
-    },
-    subreddits_sort_group: {
-        data: BaseSubreddits,
-        content: Generic.SortGroup,
-    },
-    subreddits_sort_menu: {
-        data: {_?: undefined},
-        content: Generic.SortMenu,
-    },
-    subreddits_replies_request: {
-        data: BaseSubreddits,
-        content: Generic.Opaque<"loader">,
-    },
-};
 
 type SpecialSubreddit = {
     description: string,
@@ -732,13 +585,10 @@ function postSortMethod(client: RedditClient, base: BaseItem): Sortv {
     return {v: "confidence"};
 }
 
-export const resolvers: {
-    // TODO: eventually once all are migrated and we have upgraded loaders, this can return just T instead of ReadLinkResult<T>
-    [key in keyof RedditLinkDescriptors]: (client: RedditClient, base: RedditLinkDescriptors[key]["data"]) => Generic.ReadLinkResult<RedditLinkDescriptors[key]["content"]> | null
-} = {
-    user(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+export const resolvers = {
+    user(client, base: BaseUser): Generic.Post {
         const content = client.dirty_content;
-        return {error: null, value: {
+        return {
             kind: "post",
             content: {
                 kind: "page",
@@ -778,18 +628,18 @@ export const resolvers: {
             }, // TODO
             url: `/u/${base.username}`,
             client_id,
-        }};
+        };
     },
-    user_sort_group(client, base): Generic.ReadLinkResult<Generic.SortGroup> {
+    user_sort_group(client, base: BaseUser): Generic.SortGroup {
         const sort = userSortMethod(client, base);
-        return {error: null, value: {
+        return {
             selected: {
                 key: stringify(sort),
             },
             group: opaque_sort_group.encode({kind: "user", user: base}),
-        }};
+        };
     },
-    user_sort_menu(client, base): Generic.ReadLinkResult<Generic.SortMenu> {
+    user_sort_menu(client, bas: {_?: undefined}): Generic.SortMenu {
         const single = (label: string, value: UserSort): Generic.SortOption => ({
             label,
             value: {
@@ -820,7 +670,7 @@ export const resolvers: {
                 ]}},
             ]}};
         };
-        return {error: null, value: {
+        return {
             options: [
                 sortedTab("Overview", "overview"),
                 sortedTab("Comments", "comments"),
@@ -832,32 +682,32 @@ export const resolvers: {
                 single("Hidden", {kind: "unsorted-tab", tab: "hidden"}),
                 single("Saved", {kind: "unsorted-tab", tab: "saved"}),
             ],
-        }};
+        };
     },
-    user_identity_request(client, base) {
-        return {error: null, value: opaque_loader.encode({kind: "user_identity", user: base})};
+    user_identity_request(client, base: BaseUser): Generic.Opaque<"loader"> {
+        return opaque_loader.encode({kind: "user_identity", user: base});
     },
-    user_trophies_request(client, base) {
-        return {error: null, value: opaque_loader.encode({
+    user_trophies_request(client, base: BaseUser): Generic.Opaque<"loader"> {
+        return opaque_loader.encode({
             kind: "fetch_trophies",
             username: base.username,
-        })};
+        });
     },
-    user_moderated_subreddits_request(client, base) {
-        return {error: null, value: opaque_loader.encode({kind: "user_moderated_subreddits", user: base})};
+    user_moderated_subreddits_request(client, base: BaseUser): Generic.Opaque<"loader"> {
+        return opaque_loader.encode({kind: "user_moderated_subreddits", user: base});
     },
-    user_card(client, base): Generic.ReadLinkResult<Generic.FilledIdentityCard> | null {
+    user_card(client, base: BaseUser): Generic.FilledIdentityCard {
         const user = client.data.user_abouts.get(stringify(base));
-        if (user == null) return null;
+        if (user == null) return not_loaded_obj;
 
-        return {error: null, value: userIdentityCard(user.data)};
+        return userIdentityCard(user.data);
     },
-    user_about(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+    user_about(client, base: BaseUser): Generic.Post {
         const user = client.data.user_abouts.get(stringify(base));
-        if (user == null) return null;
+        if (user == null) return not_loaded_obj;
         const content = client.dirty_content;
 
-        return {error: null, value: {
+        return {
             kind: "post",
             content: {
                 kind: "post",
@@ -876,22 +726,22 @@ export const resolvers: {
             replies: null,
             url: null,
             client_id,
-        }};
+        };
     },
-    user_trophies(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
+    user_trophies(client, base: BaseUser): Generic.HorizontalLoaded {
         const trophies = client.data.user_trophy_lists.get(stringify(base));
-        if (trophies == null) return null;
-        return {error: null, value: [
+        if (trophies == null) return not_loaded_obj;
+        return [
             ...trophies.data.trophies.map((trophy): Generic.HorizontalLoadedItem => {
                 return client.getLink("user_trophy", {label: trophy.data.name, user: base});
             }),
-        ]};
+        ];
     },
-    user_trophy(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+    user_trophy(client, base: BaseTrophy): Generic.Post {
         const trophy = client.data.user_trophies.get(stringify(base));
-        if (trophy == null) return null;
+        if (trophy == null) return not_loaded_obj;
         const body: Generic.Body[] = [];
-        return {error: null, value: {
+        return {
             kind: "post",
             content: {
                 kind: "post",
@@ -917,9 +767,9 @@ export const resolvers: {
             replies: null,
             url: null,
             client_id,
-        }};
+        };
     },
-    user_replies_request(client, base) {
+    user_replies_request(client, base: BaseUser): Generic.Opaque<"loader"> {
         const sort: UserSort = userSortMethod(client, base);
         const path = [];
         const query: Record<string, string> = {};
@@ -930,17 +780,17 @@ export const resolvers: {
         } else if (sort.kind === "unsorted-tab") {
             path.push(sort.tab);
         } else throw new Error("bad sort tab?");
-        return {error: null, value: opaque_loader.encode({
+        return opaque_loader.encode({
             kind: "fetch_listing",
             url: updateQuery(`/user/${base.username}${path.map(t => `/${t}`).join("")}`, query) as `/__any_listing`,
             parent: {kind: "user", user: base, sort},
             allow_replies: true, // because parent is kind user, this is fine. it won't add the replies for the comments
-        })};
+        });
     },
-    user_sidebar(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
+    user_sidebar(client, base: BaseUser): Generic.HorizontalLoaded {
         const identity = client.data.user_abouts.get(stringify(base));
         const moderated = client.data.user_moderated_subreddits.get(stringify(base));
-        return {error: null, value: [
+        return [
             ...identity != null ? [client.getLink("user_about", base)] : [{
                 kind: "horizontal_loader",
                 key: "#none" as Generic.Link<Generic.HorizontalLoaded>,
@@ -959,11 +809,11 @@ export const resolvers: {
                 request: client.getLink("user_moderated_subreddits_request", base),
                 client_id,
             }] satisfies Generic.HorizontalLoadedItem[],
-        ]};
+        ];
     },
 
-    client(client, base): Generic.ReadLinkResult<Generic.Post> | null {
-        return {error: null, value: {
+    client(client, base: {_?: undefined}): Generic.Post {
+        return {
             kind: "post",
             content: {
                 kind: "client",
@@ -974,11 +824,11 @@ export const resolvers: {
             replies: null,
             url: null,
             client_id,
-        }};
+        };
     },
-    subreddit(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+    subreddit(client, base: BaseSubreddit): Generic.Post {
         const content = client.dirty_content;
-        return {error: null, value: {
+        return {
             kind: "post",
             content: {
                 kind: "page",
@@ -1023,9 +873,9 @@ export const resolvers: {
             },
             url: base_subreddit.url(base, subDefaultSort(base)), // TODO: url should be a Link<string> and we will use the actual sort instead of the default sort
             client_id,
-        }};
+        };
     },
-    subreddit_sort_menu(client, base): Generic.ReadLinkResult<Generic.SortMenu> | null {
+    subreddit_sort_menu(client, base: {_?: undefined}): Generic.SortMenu {
         const single = (label: string, sub: SubSort): Generic.SortOption => ({label, value: {
             kind: "single",
             key: stringify(sub),
@@ -1041,43 +891,43 @@ export const resolvers: {
                 ["all", "All"],
             ] satisfies [key: Reddit.SubSortTime, name: string][]).map(([t, label]): Generic.SortOption => single(label, {v, t})),
         }});
-        return {error: null, value: {options: [
+        return {options: [
             single("Hot", {v: "hot", t: "all"}),
             single("Best", {v: "best", t: "all"}),
             single("New", {v: "new", t: "all"}),
             single("Rising", {v: "rising", t: "all"}),
             multi("Top", "top"),
             multi("Controversial", "controversial"),
-        ]}};
+        ]};
     },
-    subreddit_sort(client, base): Generic.ReadLinkResult<Generic.SortGroup> {
+    subreddit_sort(client, base: BaseSubreddit): Generic.SortGroup {
         const method = subSortMethod(client, base);
-        return {error: null, value: {
+        return {
             group: opaque_sort_group.encode({kind: "sub", sub: base}),
             selected: {
                 key: stringify(method),
             },
-        }};
+        };
     },
-    subreddit_replies_request(client, base) {
+    subreddit_replies_request(client, base: BaseSubreddit): Generic.Opaque<"loader"> {
         const sort = subSortMethod(client, base);
-        return {error: null, value: opaque_loader.encode({
+        return opaque_loader.encode({
             kind: "fetch_listing",
             url: base_subreddit.url(base, sort),
             parent: {kind: "subreddit", sub: base, sort: sort},
             allow_replies: true,
-        })};
+        });
     },
-    subreddit_identity_request(client, base) {
-        return {error: null, value: opaque_loader.encode({
+    subreddit_identity_request(client, base: BaseSubreddit): Generic.Opaque<"loader"> {
+        return opaque_loader.encode({
             kind: "subreddit_identity_and_sidebar",
             sub: base.sr_name ?? assertNever(0 as never),
-        })};
+        });
     },
-    subreddit_card(client, base): Generic.ReadLinkResult<Generic.FilledIdentityCard> | null {
+    subreddit_card(client, base: BaseSubreddit): Generic.FilledIdentityCard {
         // arguably these should not use subreddit_card
         const special = special_subreddits.get(base.sr_name);
-        if (special) return {error: null, value: {
+        if (special) return {
             names: {display: "Home", raw: "/"},
             pfp: null,
             theme: {banner: null},
@@ -1085,28 +935,28 @@ export const resolvers: {
             actions: {main_counter: null},
             menu: null,
             raw_value: null,
-        }};
+        };
 
         const widgets = client.data.widgets.get(stringify(base));
         const t5 = client.data.subreddit_t5s.get(stringify(base));
         console.log("subreddit_card", base, widgets, t5);
-        if (t5 == null || t5.kind !== "t5") return null;
-        return {error: null, value: subredditHeaderExists({
+        if (t5 == null || t5.kind !== "t5") return not_loaded_obj;
+        return subredditHeaderExists({
             subreddit: t5.data.display_name,
             // widgets are used for the menu, but sometimes we will have a t5 without having loaded widgets yet.
             // for now we will display it but without the menu. TODO: in this case, we should show a loader to fill the card maybe?
             widgets: widgets ?? null,
             sub_t5: t5,
-        })};
+        });
     },
-    subreddit_widgets(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
-        if (special_subreddits.has(base.sr_name)) return {error: null, value: []};
+    subreddit_widgets(client, base: BaseSubreddit): Generic.HorizontalLoaded {
+        if (special_subreddits.has(base.sr_name)) return [];
 
         const widgets = client.data.widgets.get(stringify(base));
         const t5 = client.data.subreddit_t5s.get(stringify(base));
-        if (widgets == null || t5 == null || t5.kind !== "t5") return null;
+        if (widgets == null || t5 == null || t5.kind !== "t5") return not_loaded_obj;
 
-        return {error: null, value:[
+        return [
             // v default collapsed
             client.getLink("subreddit_oldsidebar_widget", base),
 
@@ -1116,13 +966,13 @@ export const resolvers: {
                 client.getLink("widget", {subreddit: base, widget: id})
             )),
             client.getLink("widget", {subreddit: base, widget: widgets.layout.moderatorWidget}),
-        ]};
+        ];
     },
-    subreddit_oldsidebar_widget(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+    subreddit_oldsidebar_widget(client, base: BaseSubreddit): Generic.Post {
         const content = client.dirty_content;
         const t5 = client.data.subreddit_t5s.get(stringify(base));
-        if (t5 == null || t5.kind !== "t5") return null;
-        return {error: null, value: {
+        if (t5 == null || t5.kind !== "t5") return not_loaded_obj;
+        return {
             kind: "post",
             content: {
                 kind: "post",
@@ -1142,11 +992,11 @@ export const resolvers: {
             replies: null,
             url: base_oldsidebar_widget.url(base),
             client_id,
-        }};
+        };
     },
-    widget(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+    widget(client, base: BaseWidget): Generic.Post {
         const widget = client.data.widget.get(stringify(base));
-        if (!widget) return null;
+        if (!widget) return not_loaded_obj;
         const content = client.dirty_content;
         
         let postcontent: Generic.PostContent;
@@ -1441,7 +1291,7 @@ export const resolvers: {
             };
             replies = null;
         }
-        return {error: null, value: {
+        return {
             kind: "post",
             content: postcontent,
             internal_data: widget,
@@ -1449,9 +1299,9 @@ export const resolvers: {
             replies,
             url: null,
             client_id,
-        }};
+        };
     },
-    replies(client, base): Generic.ReadLinkResult<Generic.HorizontalLoaded> | null {
+    replies(client, base: ObjectID): Generic.HorizontalLoaded {
         const content = client.dirty_content;
         let sorted: SortedObjectID;
         if (base.kind === "item") {
@@ -1466,9 +1316,9 @@ export const resolvers: {
             throw new Error("todo support base kind: " + stringify(base));
         }
         const full = client.data.listings.get(stringify(sorted));
-        if (full == null) return result(null);
-        if (full === "") return {error: null, value: []};
-        return {error: null, value: [
+        if (full == null) return not_loaded_obj;
+        if (full === "") return [];
+        return [
             ...full.data.before ? [p2.createSymbolLinkToError(content, "TODO impl before", full.data.before)] : [],
             ...full.data.children.map((ch): Generic.HorizontalLoadedItem => {
                 // implement special 'more' handling
@@ -1495,15 +1345,15 @@ export const resolvers: {
                 return client.getLink("item", {fullname: ch.data.name});
             }),
             ...full.data.after ? [p2.createSymbolLinkToError(content, "TODO impl after", full.data.after)] : [],
-        ]};
+        ];
     },
-    comment_sort_menu(client, base): Generic.ReadLinkResult<Generic.SortMenu> | null {
+    comment_sort_menu(client, base: {_?: undefined}): Generic.SortMenu {
         const opt = (l: string, v: Sortv): Generic.SortOption => ({label: l, value: {
             kind: "single",
             key: stringify(v),
             request: opaque_sort_option.encode({kind: "item", sort: v}),
         }});
-        return {error: null, value: {
+        return {
             options: [
                 opt("Best", {v: "confidence"}),
                 opt("Top", {v: "top"}),
@@ -1522,66 +1372,66 @@ export const resolvers: {
                     opt("New", {m: "duplicates", v: "new", crossposts_only: false}),
                 ]}},
             ],
-        }};
+        };
     },
-    comment_sort(client, base): Generic.ReadLinkResult<Generic.SortGroup> | null {
-        return {error: null, value: {
+    comment_sort(client, base: BaseItem): Generic.SortGroup {
+        return {
             selected: {
                 key: stringify(postSortMethod(client, base)),
             },
             group: opaque_sort_group.encode({kind: "item", item: base}),
-        }};
+        };
     },
-    comment_parent_request(client, base): Generic.ReadLinkResult<Generic.Opaque<"loader">> | null {
-        return {error: null, value: opaque_loader.encode({
+    comment_parent_request(client, base: {subreddit: LowercaseString, post_fullname: string, parent_comment_fullname: string | null}): Generic.Opaque<"loader"> {
+        return opaque_loader.encode({
             kind: "view_post",
             post: {fullname: base.post_fullname as `t3_`, on_subreddit: base.subreddit, sort: postSortMethod(client, {fullname: base.post_fullname})},
             focus_comment_id: base.parent_comment_fullname,
             context: "9", // max
-        })};
+        });
     },
-    item_replies_request(client, base) {
+    item_replies_request(client, base: {subreddit: LowercaseString, post_fullname: string, comment_fullname: string | null}): Generic.Opaque<"loader"> {
         const sort = client.data.post_sorts.get(stringify({fullname: base.post_fullname}));
-        return {error: null, value: opaque_loader.encode({
+        return opaque_loader.encode({
             kind: "view_post",
             post: {fullname: base.post_fullname as `t3_`, on_subreddit: base.subreddit, sort: sort ?? "infer"},
             focus_comment_id: base.comment_fullname,
             context: "0", // min (or is it 1?)
             // TODO: set to 3 if the parent is not known?
-        })};
+        });
     },
 
-    item(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+    item(client, base: BaseItem): Generic.Post {
         const full = client.data.items.get(stringify(base));
-        if (!full) return result(null);
+        if (!full) return not_loaded_obj;
         if (full.kind === "t1") {
-            return {error: null, value: resolveT1(client, base, full)};
+            return resolveT1(client, base, full);
         } else if (full.kind === "t3") {
-            return {error: null, value: resolveT3(client, base, full)};
+            return resolveT3(client, base, full);
         }
-        return {error: "TODO: impl support for item kind: "+full.kind + ` (id ${full.data.name})`, value: null};
+        throw new Error("TODO: impl support for item kind: "+full.kind + ` (id ${full.data.name})`);
     },
 
-    loadmore_request(client, base): Generic.ReadLinkResult<Generic.Opaque<"loader">> | null {
+    loadmore_request(client, base: {base: BaseMore2, sort: Sortv | "infer", post_fullname: string}): Generic.Opaque<"loader"> {
         const full = client.data.mores.get(stringify(base.base));
-        if (full == null || full.kind !== "more" || full.data.children.length === 0) return {error: "loadmore issue", value: null};
-        return {error: null, value: opaque_loader.encode({
+        if (full == null || full.kind !== "more" || full.data.children.length === 0) throw new Error("loadmore issue");
+        return opaque_loader.encode({
             kind: "morechildren",
             base: base.base,
             more: full,
             post_fullname: base.post_fullname,
-        })};
+        });
     },
 
-    wiki(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+    wiki(client, base: BaseSubreddit): Generic.Post {
         const content = client.data.subreddit_all_wikipages.get(stringify(base));
-        if (!content) return null;
-        return null; // TODO
+        if (!content) return not_loaded_obj;
+        return not_loaded_obj; // TODO
     },
-    wikipage(client, base): Generic.ReadLinkResult<Generic.Post> | null {
+    wikipage(client, base: BaseRevisedWikipage): Generic.Post {
         const content = client.data.wikipages.get(stringify(base));
-        if (!content) return null;
-        return {error: null, value: {
+        if (!content) return not_loaded_obj;
+        return {
             kind: "post",
             content: {
                 kind: "post",
@@ -1601,13 +1451,13 @@ export const resolvers: {
             replies: null,
             url: `/r/${base.page.subreddit.sr_name ?? "TODO"}/wiki/${base.page.canonical_path}`,
             client_id,
-        }};
+        };
     },
-    wikipage_request(client, base) {
-        return {error: null, value: opaque_loader.encode({kind: "wikipage", page: base})};
+    wikipage_request(client, base: BaseRevisedWikipage): Generic.Opaque<"loader"> {
+        return opaque_loader.encode({kind: "wikipage", page: base});
     },
-    subreddits(client, base): Generic.ReadLinkResult<Generic.Post> | null {
-        return {error: null, value: {
+    subreddits(client, base: BaseSubreddits): Generic.Post {
+        return {
             kind: "post",
             content: {
                 kind: "post",
@@ -1631,23 +1481,23 @@ export const resolvers: {
             },
             url: `/subreddits`, // TODO include the sort
             client_id,
-        }};
+        };
     },
-    subreddits_sort_group(client, base): Generic.ReadLinkResult<Generic.SortGroup> | null {
+    subreddits_sort_group(client, base: BaseSubreddits): Generic.SortGroup {
         const sort = subredditsSortMethod(client, base);
-        return {error: null, value: {
+        return {
             selected: {
                 label: sort.path.join("/"),
                 key: stringify(sort),
             },
             group: opaque_sort_group.encode({kind: "subreddits", srs: base}),
-        }};
+        };
     },
-    subreddits_sort_menu(client, base): Generic.ReadLinkResult<Generic.SortMenu> | null {
+    subreddits_sort_menu(client, base: {_?: undefined}): Generic.SortMenu {
         const sov = (v: SubredditsSort): Generic.SortOption["value"] => {
             return {kind: "single", key: stringify(v), request: opaque_sort_option.encode({kind: "subreddits", sort: v})};
         };
-        return {error: null, value: {
+        return {
             options: [
                 {label: "Popular", value: sov({path: ["subreddits", "popular"]})},
                 {label: "New", value: sov({path: ["subreddits", "new"]})},
@@ -1658,18 +1508,27 @@ export const resolvers: {
                     {label: "Moderator", value: sov({path: ["subreddits", "mine", "moderator"]})},
                 ]}},
             ],
-        }};
+        };
     },
-    subreddits_replies_request(client, base) {
+    subreddits_replies_request(client, base: BaseSubreddits): Generic.Opaque<"loader"> {
         const sort = subredditsSortMethod(client, base);
-        return {error: null, value: opaque_loader.encode({
+        return opaque_loader.encode({
             kind: "fetch_listing",
             url: sort.path.map(t => `/${t}`).join("") as `/__any_listing`,
             parent: {kind: "subreddits", srs: base, sort},
             allow_replies: true,
-        })};
+        });
     },
-};
+} satisfies Record<string, Resolver<any, any>>;
+
+type Resolver<Base, Result> = (client: RedditClient, base: Base) => Result;
+type GetResolver<Key extends ResolverL1> = (typeof resolvers)[Key];
+export type ResolverBase<Key extends ResolverL1> = GetResolver<Key> extends Resolver<infer Base, any> ? Base : never;
+export type ResolverResult<Key extends ResolverL1> = GetResolver<Key> extends Resolver<any, infer Result> ? Result : never;
+export type ResolverL1 = keyof typeof resolvers;
+
+/** @deprecated */
+export const not_loaded_obj: never = Symbol("not_loaded") as never;
 
 function subredditsSortMethod(client: RedditClient, base: BaseSubreddits): SubredditsSort {
     return client.data.subreddits_sorts.get(stringify(base)) ?? {path: ["subreddits", "popular"]};
