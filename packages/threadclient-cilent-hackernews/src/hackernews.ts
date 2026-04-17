@@ -220,11 +220,6 @@ const resolvers = {
         if (full.text != null) body.push({kind: "text", content: full.text, markdown_format: "reddit_html", client_id});
         if (full.deleted) body.push({kind: "richtext", content: [Generic.rt.p(Generic.rt.txt("[deleted]"))]});
         if (full.dead) body.push({kind: "richtext", content: [Generic.rt.p(Generic.rt.txt("[dead]"))]});
-        if (full.parts) {
-            body.push({kind: "richtext", content: [Generic.rt.ul(
-                ...full.parts.map((part, i) => Generic.rt.li(Generic.rt.p(Generic.rt.link({id: client_id}, itemUrl({id: part}), {}, Generic.rt.txt(`Option ${i+1}`))))),
-            )]});
-        };
 
         const parent_id = full.parent ?? full.poll ?? undefined;
 
@@ -236,10 +231,11 @@ const resolvers = {
                 title: full.title != null ? {text: full.title} : null,
                 author2: full.by != null ? client.getLink("user_limited_card", {id: full.by}) : undefined,
                 body: body.length > 1 ? {kind: "array", body} : body.length === 1 ? body[0]! : {kind: "none"},
-                collapsible: {default_collapsed: full.deleted || full.dead || full.type !== "comment"},
+                collapsible: {default_collapsed: full.deleted || full.dead || (full.type !== "comment" && full.type !== "pollopt")},
                 info: {
                     creation_date: full.time != null ? full.time * 1000 : undefined,
                     comments: full.descendants,
+                    pinned: full.type === "pollopt",
                 },
                 actions: {
                     vote: full.type !== "job" ? {
@@ -310,7 +306,9 @@ const resolvers = {
     item_replies(client, base: BaseItem): Generic.HorizontalLoaded {
         const full = client.data.get("id_to_item", base.id);
         if (!full) return not_loaded_obj;
-        return full.kids?.map((ch): Generic.HorizontalLoader => itemHorizontalLoader(client, {id: ch})) ?? [];
+        return [
+            ...[...full.parts ?? [], ...full.kids ?? []]?.map((ch): Generic.HorizontalLoader => itemHorizontalLoader(client, {id: ch})),
+        ];
     },
     item_request(client, base: BaseItem): Generic.Opaque<"loader"> {
         return opaque_loader.encode({kind: "item", item: base});
