@@ -79,9 +79,6 @@ export type UTLRes = {
 const rt = Generic.rt;
 
 type BaseItem = {id: number};
-function itemUrl(base: BaseItem): string {
-    return updateQuery("/item", {id: "" + base.id});
-}
 /** @deprecated */
 const not_loaded_obj: never = Symbol("not_loaded") as never;
 
@@ -122,7 +119,6 @@ const resolvers = {
     },
     listing(client, base: BaseListing): Generic.Post {
         const content = client.dirty_content;
-        const url = updateQuery("/", {});
         return {
             kind: "post",
             content: {
@@ -167,9 +163,19 @@ const resolvers = {
                 sort_group: client.getLink("listing_sort_group", base),
                 sort_menu: client.getLink("listing_sort_menu", {}),
             },
-            url,
+            url: client.getLink("listing_url", base),
             client_id,
         };
+    },
+    listing_url(client, base: BaseListing): string {
+        const sort = client.getListingSort(base);
+        if (sort === "askstories") return "/ask";
+        if (sort === "beststories") return "/best";
+        if (sort === "jobstories") return "/jobs";
+        if (sort === "newstories") return "/newest";
+        if (sort === "showstories") return "/show";
+        if (sort === "topstories") return "/";
+        assertNever(sort);
     },
     listing_request(client, base: BaseListing): Generic.Opaque<"loader"> {
         const sort = client.getListingSort(base);
@@ -214,7 +220,6 @@ const resolvers = {
         const content = client.dirty_content;
         const full = client.data.get("id_to_item", base.id);
         if (!full) return not_loaded_obj;
-        const url = itemUrl(base);
         const body: Generic.Body[] = [];
         if (full.url != null) body.push({kind: "link", url: full.url, client_id});
         if (full.text != null) body.push({kind: "text", content: full.text, markdown_format: "reddit_html", client_id});
@@ -273,7 +278,7 @@ const resolvers = {
                             actions: {},
                             time: Date.now(),
                         },
-                        rawlinkButton(url),
+                        rawlinkButton(updateQuery("/item", {id: "" + base.id})), // TODO: remove rawlink buttons
                     ],
                 },
             },
@@ -295,9 +300,12 @@ const resolvers = {
                     client_id,
                 },
             } : null,
-            url: url,
+            url: client.getLink("item_url", base),
             client_id,
         };
+    },
+    item_url(client, base: BaseItem): string {
+        return updateQuery("/item", {id: "" + base.id});
     },
     item_horizontal(client, base: BaseItem): Generic.HorizontalLoaded {
         if (!client.data.has("id_to_item", base.id)) return not_loaded_obj;
@@ -346,7 +354,6 @@ const resolvers = {
         return opaque_loader.encode({kind: "user", user: base});
     },
     user_post(client, base: BaseUser): Generic.Post {
-        const url = updateQuery("/user", {id: base.id});
         const content = client.dirty_content;
         return {
             kind: "post",
@@ -381,9 +388,13 @@ const resolvers = {
                 // todo sorts: submisisons/comments/favourites
                 // unfortunately, the api only supports submissions
             },
-            url,
+            url: client.getLink("user_url", base),
             client_id,
         };
+    },
+    user_url(client, base: BaseUser): string {
+        const url = updateQuery("/user", {id: base.id});
+        return url;
     },
     user_replies(client, base: BaseUser): Generic.HorizontalLoaded {
         const full = client.data.get("id_to_user", base.id);
@@ -404,9 +415,12 @@ const resolvers = {
             internal_data: base,
             replies: null,
             parent: clientAsParent(content, {}),
-            url: base.url,
+            url: client.getLink("rawlink_url", base),
             client_id,
         };
+    },
+    rawlink_url(client, base: BaseRawlink): string {
+        return base.url;
     },
 
     about(client, base: BaseListing): Generic.Post {
@@ -433,9 +447,17 @@ const resolvers = {
             internal_data: base,
             replies: null,
             parent: {loader: Generic.p2.prefilledVerticalLoader(content, client.getLink("listing", base), undefined)},
-            url: `/@?obj=${encodeURIComponent(client.getLink("about", base) as string)}`,
+            url: client.getLink("about_url", base),
             client_id,
         };
+    },
+    about_url(client, base: BaseListing): string {
+        const sort = client.getListingSort(base);
+        return updateQuery("/@", {
+            obj: client.getLink("about", base).toString(),
+            sort_on: stringify<SortGroupData>({kind: "listing", listing: base}),
+            sort_set: stringify<SortOptionData>({kind: "listing", sort}),
+        });
     },
 } satisfies Record<string, Resolver<any, any>>;
 

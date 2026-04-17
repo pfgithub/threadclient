@@ -89,7 +89,7 @@ export class ObservableData<T extends {[key: string]: [unknown, unknown]}, Track
         return nm;
     }
 
-    get<Str extends keyof T>(str: Str, key: T[NoInfer<Str>][0]): T[NoInfer<Str>][1] {
+    get<Str extends keyof T>(str: Str, key: T[NoInfer<Str>][0]): T[NoInfer<Str>][1] | undefined {
         return this._getMap(str).get(key);
     }
     has<Str extends keyof T>(str: Str, key: T[NoInfer<Str>][0]): boolean {
@@ -132,7 +132,9 @@ export class ObservableMap<T, U, Tracking> {
     setAndList(key: T, value: U): Set<Tracking> {
         console.log("setAndList", key, value);
         this._map.set(key, value);
-        return this._deps(key);
+        const deps = this._deps(key);
+        // TODO: for (const dep of deps) this._dependencies.delete(dep); // this is probably right but should go in its own commit
+        return deps;
     }
     private _deps(key: T): Set<Tracking> {
         if (!this._dependencies.has(key)) {

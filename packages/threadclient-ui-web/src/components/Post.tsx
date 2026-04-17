@@ -308,12 +308,13 @@ export function PostTopBar(props: ClientPostProps & {
     const hasTitle = () => props.content.title != null;
 
     const settings = getSettings();
+    const hprc = getWholePageRootContextOpt();
 
     return <HSplit.Container dir="right" vertical="center">
         <Show if={!props.visible} when={props.content.thumbnail}>{thumb_any => (
             <HSplit.Child>
                 <Thumbnail content_warning={props.contentWarning} action={{
-                    url: props.opts.frame?.url ?? "ENOHREF",
+                    url: props.opts.frame?.url != null && hprc ? hprc.content.view2(props.opts.frame?.url) : "enohref",
                     client_id: props.opts.frame?.client_id ?? "ENOCLIENTID",
                     page: props.getPage,
                     onClick: props.collapseInfo.user_controllable ? () => {
@@ -333,8 +334,9 @@ export function PostTopBar(props: ClientPostProps & {
                 if(!allowedToAcceptClick(e.target, e.currentTarget)) return;
                 e.stopPropagation();
 
+                if (!props.opts.frame?.url || !hprc) return alert("post has no url");
                 // support ctrl click
-                const target_url = "/"+props.opts.client_id+props.opts.frame?.url;
+                const target_url = "/"+props.opts.client_id+hprc.content.view2(props.opts.frame.url);
                 if(e.ctrlKey || e.metaKey || e.altKey) {
                     if(props.opts.frame?.url == null) return;
                     window.open(target_url);
@@ -373,11 +375,11 @@ export function PostTopBar(props: ClientPostProps & {
                         (isPivot() && props.visible) ? "text-3xl sm:text-2xl" : "text-base",
                     )}>
                         <Show when={props.content.title}>{title => (
-                            <Show if={!isPivot()} when={props.opts.frame?.url} fallback={(
+                            <Show if={!isPivot() && (hprc != null)} when={props.opts.frame?.url} fallback={(
                                 title.text
                             )}>{url => (
                                 <Clickable
-                                    action={{url, client_id: props.opts.client_id, page: props.getPage}}
+                                    action={{url: hprc!.content.view2(url), client_id: props.opts.client_id, page: props.getPage}}
                                     class="hover:underline"
                                 >{title.text}</Clickable>
                             )}</Show>

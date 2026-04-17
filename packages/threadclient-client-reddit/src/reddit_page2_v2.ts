@@ -572,9 +572,15 @@ export const resolvers = {
                 sort_group: client.getLink("user_sort_group", base),
                 sort_menu: client.getLink("user_sort_menu", {}),
             }, // TODO
-            url: `/u/${base.username}`,
+            url: client.getLink("user_url", base),
             client_id,
         };
+    },
+    user_url(client, base: BaseUser): string {
+        const sort = userSortMethod(client, base);
+        return updateQuery(`/user/${base.username}/${sort.tab}` + (sort.kind === "sorted-tab" ? `/${sort.sort.sort}` : ""), sort.kind === "sorted-tab" ? {
+            t: sort.sort.t,
+        } : {});
     },
     user_sort_group(client, base: BaseUser): Generic.SortGroup {
         const sort = userSortMethod(client, base);
@@ -817,9 +823,13 @@ export const resolvers = {
                 sort_menu: client.getLink("subreddit_sort_menu", {}),
                 sort_group: client.getLink("subreddit_sort", base),
             },
-            url: base_subreddit.url(base, subDefaultSort(base)), // TODO: url should be a Link<string> and we will use the actual sort instead of the default sort
+            url: client.getLink("subreddit_url", base),
             client_id,
         };
+    },
+    subreddit_url(client, base: BaseSubreddit): string {
+        const sort = subSortMethod(client, base);
+        return base_subreddit.url(base, sort);
     },
     subreddit_sort_menu(client, base: {_?: undefined}): Generic.SortMenu {
         const single = (label: string, sub: SubSort): Generic.SortOption => ({label, value: {
@@ -936,7 +946,7 @@ export const resolvers = {
             internal_data: t5,
             parent: base_subreddit.asParent(content, base),
             replies: null,
-            url: base_oldsidebar_widget.url(base),
+            url: deprecatedUrl(content, base_oldsidebar_widget.url(base)),
             client_id,
         };
     },
@@ -1033,7 +1043,7 @@ export const resolvers = {
                     parent: {loader: p2.prefilledVerticalLoader(content, client.getLink("widget", base), undefined)},
                     replies: null,
 
-                    url: "/r/"+base.subreddit.sr_name+"/search?q=flair:\""+encodeURIComponent(val.text!)+"\"&restrict_sr=1",
+                    url: deprecatedUrl(content, "/r/"+base.subreddit.sr_name+"/search?q=flair:\""+encodeURIComponent(val.text!)+"\"&restrict_sr=1"),
                     client_id,
                 });
             }))};
@@ -1109,7 +1119,7 @@ export const resolvers = {
                         parent: {loader: p2.prefilledVerticalLoader(content, client.getLink("widget", base), undefined)},
                         replies: null,
 
-                        url: base_subreddit.url(sub_base, subSortMethod(client, sub_base)),
+                        url: client.getLink("subreddit_url", sub_base),
                         client_id,
                     });
                 }else{
@@ -1357,6 +1367,34 @@ export const resolvers = {
         }
         throw new Error("TODO: impl support for item kind: "+full.kind + ` (id ${full.data.name})`);
     },
+    item_url(client, base: BaseItem): string {
+        const full = client.data.get("items", stringify(base));
+        if (!full) throw new Error("url of non-loaded item");
+        if (full.kind === "t1") {
+            const link_base: BaseItem = {fullname: full.data.link_id};
+            let full_link = client.data.get("items", stringify(link_base));
+            if (full_link?.kind !== "t3") full_link = undefined;
+            const sort = postSortMethod(client, link_base);
+            return updateQuery(full.data.permalink, {
+                context: "3",
+                ...isDuplicates(sort) || (sort.v === full_link?.data.suggested_sort || full_link != null && sort.v === "confidence" && !full_link.data.suggested_sort) ? {} : {
+                    sort: sort.v,
+                },
+            });
+        } else if (full.kind === "t3") {
+            const sort = postSortMethod(client, base);
+            return isDuplicates(sort) ? updateQuery(
+                "/r/"+full.data.subreddit+"/duplicates/"+full.data.id, {
+                    sort: sort.v,
+                    crossposts_only: "" + sort.crossposts_only,
+                }
+            ) : updateQuery(full.data.permalink, (sort.v === full.data.suggested_sort || sort.v === "confidence" && !full.data.suggested_sort) ? {} : {
+                sort: sort.v,
+            });
+        } else {
+            throw new Error("TODO: impl url support for item kind: " + full.kind);
+        }
+    },
 
     loadmore_request(client, base: {base: BaseMore2, sort: Sortv | "infer", post_fullname: string}): Generic.Opaque<"loader"> {
         const full = client.data.get("mores", stringify(base.base));
@@ -1395,9 +1433,12 @@ export const resolvers = {
             internal_data: content,
             parent: {loader: p2.prefilledVerticalLoader(client.dirty_content, client.getLink("wiki", base.page.subreddit), undefined)},
             replies: null,
-            url: `/r/${base.page.subreddit.sr_name ?? "TODO"}/wiki/${base.page.canonical_path}`,
+            url: client.getLink("wikipage_url", base),
             client_id,
         };
+    },
+    wikipage_url(client, base: BaseRevisedWikipage): string {
+        return `/r/${base.page.subreddit.sr_name ?? "TODO"}/wiki/${base.page.canonical_path}`;
     },
     wikipage_request(client, base: BaseRevisedWikipage): Generic.Opaque<"loader"> {
         return opaque_loader.encode({kind: "wikipage", page: base});
@@ -1425,9 +1466,13 @@ export const resolvers = {
                 sort_group: client.getLink("subreddits_sort_group", base),
                 sort_menu: client.getLink("subreddits_sort_menu", {}),
             },
-            url: `/subreddits`, // TODO include the sort
+            url: client.getLink("subreddits_url", base),
             client_id,
         };
+    },
+    subreddits_url(client, base: BaseSubreddits): string {
+        const sort = subredditsSortMethod(client, base);
+        return sort.path.map(p => `/${p}`).join("");
     },
     subreddits_sort_group(client, base: BaseSubreddits): Generic.SortGroup {
         const sort = subredditsSortMethod(client, base);
@@ -1501,22 +1546,13 @@ function itemReplies(client: RedditClient, base: BaseItem, full: Reddit.T1 | Red
 }
 
 function resolveT3(client: RedditClient, base: BaseItem, full: Reddit.T3): Generic.Post {
-    const sort = ("infer" satisfies Sortv | "infer") as (Sortv | "infer");
-    const url = isDuplicates(sort) ? updateQuery(
-        "/r/"+full.data.subreddit+"/duplicates/"+full.data.id, {
-            sort: sort.v,
-            crossposts_only: "" + sort.crossposts_only,
-        }
-    ) : updateQuery(full.data.permalink, sort !== "infer" ? {
-        sort: sort.v,
-    } : {});
     const listing = full.data;
     const {replies} = itemReplies(client, base, full);
     const sr_name = asLowercaseString(full.data.subreddit);
     return {
         kind: "post",
         client_id,
-        url,
+        url: client.getLink("item_url", base),
 
         parent: base_subreddit.asParent(client.dirty_content, {sr_name: asLowercaseString(full.data.subreddit)}),
         replies,
@@ -1542,7 +1578,7 @@ function resolveT3(client: RedditClient, base: BaseItem, full: Reddit.T3): Gener
                         text: listing.domain,
                     }, deleteButton(listing.name), saveButton(listing.name, listing.saved), reportButton(listing.name, listing.subreddit),
                     editButton(listing.name),
-                    rawlinkButton(url),
+                    rawlinkButton(listing.permalink), // TODO: remove rawlink buttons
                 ],
             },
         },
@@ -1551,9 +1587,7 @@ function resolveT3(client: RedditClient, base: BaseItem, full: Reddit.T3): Gener
 }
 
 function resolveT1(client: RedditClient, base: BaseItem, full: Reddit.T1): Generic.Post {
-    const url = updateQuery(full.data.permalink, {context: "3"});
-
-    const listing = full.data;
+    const listing = full.data; // TODO: f2 rename to 'item' not 'listing'
 
     const parent_unfilled_link = client.getLink("item", {fullname: full.data.parent_id});
     const load_parent_request = client.getLink("comment_parent_request", {subreddit: asLowercaseString(full.data.subreddit), post_fullname: full.data.link_id, parent_comment_fullname: full.data.parent_id.startsWith("t1_") ? full.data.parent_id : null});
@@ -1584,7 +1618,7 @@ function resolveT1(client: RedditClient, base: BaseItem, full: Reddit.T1): Gener
                     deleteButton(listing.name),
                     saveButton(listing.name, listing.saved),
                     reportButton(listing.name, listing.subreddit),
-                    rawlinkButton(url),
+                    rawlinkButton(listing.permalink), // TODO: remove rawlink buttons 
                 ],
             },
         },
@@ -1599,7 +1633,7 @@ function resolveT1(client: RedditClient, base: BaseItem, full: Reddit.T1): Gener
             },
         },
         replies,
-        url,
+        url: client.getLink("item_url", base),
         client_id,
     };
 }
@@ -1683,11 +1717,16 @@ export const full_submit = {
             internal_data: {about, flairinfo},
             parent: base_subreddit.asParent(content, {sr_name: full.on_base.on_subreddit}),
             replies: null,
-            url: base_submit.url(full.on_base),
+            url: deprecatedUrl(content, base_submit.url(full.on_base)),
             client_id,
         };
     }),
 };
+
+/** @deprecated */
+function deprecatedUrl(content: Generic.Page2Content, url: string): Generic.Link<string> {
+    return Generic.p2.fillLink(content, "raw_url→" + url as Generic.Link<string>, url);
+}
 
 const base_inbox = {
     // consistentData: autoOutline("base_inbox→sort_options", (content, base: BaseInbox): Generic.ConsistentSortData => {

@@ -8,7 +8,7 @@ export const client: DeprecatedClient= new DeprecatedClient({
     id: "shell",
 
     async getPage(path: string): Promise<Generic.Page2> {
-        console.log("!!ALL_CONTENT", all_content);
+        // console.log("!!ALL_CONTENT", all_content);
 
         // we can just return all the content i guess
         // might be nice if we structured it so it can be dynamically imported in the future but this
@@ -103,7 +103,7 @@ export function autoPost(
             kind: "post",
             parent: parent != null ? parentLink(linkToPost(parent)) : null,
             replies: replies != null ? repliesLink(url, replies.map(linkToPost)) : null,
-            url: url,
+            url: deprecatedUrl(url),
             client_id: client.id,
             internal_data: props,
             content: (typeof content === "function" ? content : autoPostContent(content))(url),
@@ -128,13 +128,16 @@ function repliesLink(post_id: AllLinks, replies: Generic.Link<Generic.Post>[]): 
 }
 
 const extra_content: Generic.Page2Content = {};
+function deprecatedUrl(url: string): Generic.Link<string> {
+    return p2.fillLink(extra_content, "raw_url→"+url as Generic.Link<string>, url);
+}
 
 const all_content_raw_dontuse = {
     "/@special-navbar": () => u(url => ({
         kind: "post",
         parent: null,
         replies: null,
-        url,
+        url: deprecatedUrl(url),
         client_id: client.id,
         internal_data: "",
         content: {
@@ -150,7 +153,7 @@ const all_content_raw_dontuse = {
         kind: "post",
         parent: parentLink(linkToPost("/@special-navbar")),
         replies: null,
-        url,
+        url: deprecatedUrl(url),
         client_id: client.id,
         internal_data: "",
         content: {

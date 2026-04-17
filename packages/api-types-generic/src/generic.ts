@@ -378,7 +378,7 @@ export type Post = {
     parent: null | PostParent, // TODO: change this to a Link<{load?: opaque, next: Post | null}>
     replies: null | PostReplies, // TODO: rename to 'children' and change this to a Link<HorizontalLoaded> which will contain any loaders.
     
-    url: string | null, // if a thing does not have a url, it cannot be the pivot
+    url: Link<string> | null, // if a thing does not have a url, it cannot be the pivot
     client_id: string,
 
     // meta: Link<PostMeta>,

@@ -516,7 +516,7 @@ function fillPost(host: string, content: Generic.Page2Content, post: Mastodon.St
             },
         },
 
-        url: "/"+host+"/statuses/"+post.id,
+        url: deprecatedUrl(content, "/"+host+"/statuses/"+post.id),
         client_id: client.id,
     });
     
@@ -542,9 +542,14 @@ function fillInstanceSelector(content: Generic.Page2Content, link: Generic.Link<
         internal_data: link,
         parent: null,
         replies: null,
-        url: "/",
+        url: deprecatedUrl(content, "/"),
         client_id: client.id,
     });
+}
+
+/** @deprecated */
+function deprecatedUrl(content: Generic.Page2Content, url: string): Generic.Link<string> {
+    return Generic.p2.fillLink(content, "raw_url→" + url as Generic.Link<string>, url);
 }
 
 
@@ -1172,7 +1177,7 @@ function unpivotablePostBelowPivot(
     },
 ): Generic.Link<Generic.Post> {
     return p2.fillLinkOnce<Generic.Post>(content, opts.link ?? p2.symbolLink(""), () => ({
-        url: opts.link_to ?? null,
+        url: opts.link_to != null ? deprecatedUrl(content, opts.link_to) : null,
         parent: null, // always below the pivot, doesn't matter.
         // ^ not true - top level posts below the pivot might show their parents. so we should be able to
         // pass something in here
@@ -1259,7 +1264,7 @@ function fillTimeline(content: Generic.Page2Content, host: string, tl: Timeline)
 
     return p2.fillLink(content, tl_root, {
         kind: "post",
-        url: timelineAppUrl(host, tl),
+        url: deprecatedUrl(content, timelineAppUrl(host, tl)),
         parent,
         replies,
         internal_data: tl,

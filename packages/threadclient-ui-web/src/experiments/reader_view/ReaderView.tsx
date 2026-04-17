@@ -11,6 +11,7 @@ import { LinkButton, UserLink } from "../../components/links";
 import Pfp from "../../components/Pfp";
 import { getSettings, getWholePageRootContext } from "../../util/utils_solid";
 import Page2ContentManager from "../../util/Page2ContentManager";
+import ReadLink from "../../components/ReadLink";
 
 export default function ReaderView(props: {
     pivot: Generic.Link<Generic.Post>,
@@ -29,20 +30,20 @@ export default function ReaderView(props: {
 
     return <div class="w-full min-h-screen bg-white">
         <div class="max-w-2xl mx-auto h-full p-4 text-base">
-            <Clickable
+            <Show when={pivotedPost().v.url}>{pivot_url => <ReadLink link={pivot_url}>{url => <Clickable
                 class="fixed top-0 left-0 bg-hex-000000 bg-opacity-50 p-4"
                 action={{
                     mode: "replace",
                     client_id: pivotedPost().v.client_id,
                     page: (): Page2ContentManager => hprc.content.dupe(props.pivot),
-                    url: updateQuery(pivotedPost().v.url ?? "ENO", {'--tc-view': undefined}),
+                    url: updateQuery(url, {'--tc-view': undefined}),
                 }}
             >
                 <InternalIconRaw
                     class="fa-solid fa-down-left-and-up-right-to-center text-base"
                     label={"Exit Reader"}
                 />
-            </Clickable>
+            </Clickable>}</ReadLink>}</Show>
             <div class="pt-4" />
             <Show when={pivotedPost().content} fallback={<>
                 pivotedpost content is undefined

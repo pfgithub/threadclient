@@ -7,6 +7,7 @@ import { addAction } from "./action_tracker";
 import { actAuto, getCounterState } from "./counter";
 import { getCState, postContentCollapseInfo } from "./flatten";
 import { ClientPostOpts } from "./Post";
+import { getWholePageRootContext } from "../util/utils_solid";
 
 export type FormattableNumber = ["percent" | "number" | "timeago" | "hidden" | "none", number];
 export type InfoBarItem = {
@@ -227,6 +228,7 @@ function ActionBarItems(props: {
     post: Generic.PostContentPost,
     opts: ClientPostOpts,
 }): JSX.Element {
+    const hprc = getWholePageRootContext();
     return <>
         {/* now I want a <Show whenAll={{a, b, c}}>{(props) => } */}
         {props.opts.collapse_data && props.opts.flat_frame != null && props.opts.flat_frame.collapse && (
@@ -253,7 +255,7 @@ function ActionBarItems(props: {
                 icon="link"
                 color={null}
                 text={"Permalink"}
-                onClick={{url: props.opts.frame.url}}
+                onClick={{url: hprc.content.view2(props.opts.frame.url)}}
 
                 client_id={props.opts.client_id}
             />

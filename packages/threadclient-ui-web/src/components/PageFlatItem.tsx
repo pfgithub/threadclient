@@ -252,9 +252,10 @@ export function postOnClick(hprc: PageRootContext, frame: FlatPost, e: MouseEven
     const post = frame.content;
 
     if(post.kind !== "flat_post") return alert("EONCLICK-ON-NON-POST");
+    if (post.post.url == null) return alert("ECLICK-ON-POST-WITHOUT-URL");
 
     // support ctrl click
-    const target_url = "/"+post.post.client_id+post.post.url;
+    const target_url = "/"+post.post.client_id+hprc.content.view2(post.post.url);
     if(e.ctrlKey || e.metaKey || e.altKey) {
         window.open(target_url);
     }else{

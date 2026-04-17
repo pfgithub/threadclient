@@ -22,6 +22,7 @@ import { LinkButton, UserLink } from "../../components/links";
 import { actAuto, getCounterState } from "../../components/counter";
 import { addAction } from "../../components/action_tracker";
 import Page2ContentManager from "../../util/Page2ContentManager";
+import ReadLink from "../../components/ReadLink";
 
 /*
 Planned gestures:
@@ -585,13 +586,15 @@ function FullscreenPost(props: {
             </Clickable>
         </>;}}</Show>
         <Show when={props.opts.frame?.url}>{post_url => (
-            <Clickable class="block w-full" action={{url: post_url, client_id: props.opts.client_id}}>
-                <SidebarButton
-                    icon="comments"
-                    label="Comments"
-                    text={props.content.info?.comments != null ? ["number", props.content.info?.comments] : ["none", 0]}
-                />
-            </Clickable>
+            <ReadLink link={post_url}>{post_url_value => (
+                <Clickable class="block w-full" action={{url: post_url_value, client_id: props.opts.client_id}}>
+                    <SidebarButton
+                        icon="comments"
+                        label="Comments"
+                        text={props.content.info?.comments != null ? ["number", props.content.info?.comments] : ["none", 0]}
+                    />
+                </Clickable>
+            )}</ReadLink>
         )}</Show>
         <Clickable class="block w-full" action="TODO">
             <SidebarButton
@@ -706,10 +709,10 @@ export default function FullscreenSnapView(props: {
                 }}</SwitchKind>
             </VirtualElement>;
         }}</For>
-    </div><Clickable
+    </div><Show when={m().pivot.url}>{pivot_url => <ReadLink link={pivot_url}>{url => (<Clickable
         class="fixed top-0 left-0 bg-hex-000000 bg-opacity-50 p-4"
         action={{
-            url: updateQuery(m().pivot.url ?? "ENO", {'--tc-view': undefined}),
+            url: updateQuery(url, {'--tc-view': undefined}),
             client_id: m().pivot.client_id,
             mode: "replace",
             page: (): Page2ContentManager => hprc.content.dupe(props.pivot),
@@ -719,7 +722,7 @@ export default function FullscreenSnapView(props: {
             class="fa-solid fa-down-left-and-up-right-to-center text-base"
             label={"Exit Fullscreen"}
         />
-    </Clickable></zoomed_provider.Provider>;
+    </Clickable>)}</ReadLink>}</Show></zoomed_provider.Provider>;
 }
 
 function VirtualElement(props: {children: JSX.Element, class: string}): JSX.Element {

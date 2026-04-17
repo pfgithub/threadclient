@@ -7,7 +7,7 @@ export default function ReadLink<T>(props: {
     link: Generic.Link<T>,
     children: (value: T) => JSX.Element,
     whenError?: undefined | ((emsg: string) => JSX.Element),
-    fallback: JSX.Element,
+    fallback?: JSX.Element,
 }): JSX.Element {
     const hprc = getWholePageRootContextOpt();
     const linkval = createMemo((): ({kind: "none"} | {kind: "error", msg: string} | {kind: "value", value: T}) => {
@@ -30,7 +30,9 @@ export default function ReadLink<T>(props: {
     }});
 
     return <SwitchKind item={linkval()} children={{
-        'none': () => props.fallback,
+        'none': () => props.fallback ?? <div class="text-red-500">
+            error missing value
+        </div>,
         'error': emsg => <Show when={props.whenError} fallback={<div class="text-red-500">
             error: {emsg.msg}
         </div>} children={whenError => <>{untrack(() => whenError(emsg.msg))}</>} />,

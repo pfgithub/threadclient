@@ -465,7 +465,7 @@ function useFlattenMain(pivot_link: Generic.Link<Generic.Post>, pivot: Generic.P
                     kind="button"
                     client_id={p.client_id}
                     pivot={() => pivot_link}
-                    href={updateQuery(p.url ?? "@ENO", {'--tc-view': "reader"})}
+                    href={updateQuery(p.url != null ? hprc.content.view2(p.url) : "@Eno", {'--tc-view': "reader"})}
                     name="Reader"
                 />
             </> : null}
@@ -495,7 +495,7 @@ function useFlattenMain(pivot_link: Generic.Link<Generic.Post>, pivot: Generic.P
                         kind="button"
                         client_id={p.client_id}
                         pivot={() => pivot_link}
-                        href={updateQuery(p.url ?? "@ENO", {'--tc-view': "fullscreen"})}
+                        href={updateQuery(p.url != null ? hprc.content.view2(p.url) : "@Eno", {'--tc-view': "fullscreen"})}
                         name="Fullscreen"
                     />
                 </> : null}
@@ -576,7 +576,8 @@ function useFlattenMain(pivot_link: Generic.Link<Generic.Post>, pivot: Generic.P
         },
         get url() {
             const focus = pivot;
-            return focus.url;
+            if (!focus.url) return "Enourl";
+            return "/" + focus.client_id + "/" + hprc.content.view2(focus.url);
         },
         get body() {
             return bodyCh();
