@@ -1,7 +1,7 @@
 import * as Generic from "api-types-generic";
 import { autoFill, autoLinkgen, autoOutline, p2, rt, validatePost } from "api-types-generic";
 import type * as Reddit from "api-types-reddit";
-import { encoderGenerator, ObservableMap, Stringified, stringify } from "threadclient-client-base";
+import { encoderGenerator, ObservableData, ObservableMap, Stringified, stringify } from "threadclient-client-base";
 import { assertNever, assertUnreachable, expectUnsupported, result, updateQuery } from "tmeta-util";
 import { getPostInfo, rawlinkButton, submit_encoder } from "./page2_from_listing";
 import { authorFromPostOrComment, awardingsToFlair, client_id, createSubscribeAction, deleteButton, ec, editButton, flairToGenericFlair, flair_oc, flair_over18, flair_spoiler, getCodeButton, getCommentBody, getNavbar, getPointsOn, getPostBody, getPostFlair, getPostThumbnail, InboxTab, jstrOf, ParsedPath, parseLink, PostSort, redditRequest, replyButton, reportButton, saveButton, subredditHeaderExists, SubrInfo, SubSort, resolveSLink, RedditClient, userIdentityCard } from "./reddit";
@@ -100,7 +100,7 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
         if(subv == null) {
             throw new Error("TODO support listing kind: ["+parsed.sub.kind+"]")
         }
-        client.addDirty(client.data.subreddit_sorts.setAndList(stringify(subv), parsed.current_sort));
+        client.addDirty(client.data.setAndList("subreddit_sorts", stringify(subv), parsed.current_sort));
         const link = client.getLink("subreddit", subv);
         return p2.prefilledVerticalLoader(content, link, undefined);
     }
@@ -114,7 +114,7 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
         const comment_fullname = parsed.focus_comment != null ? `t1_${parsed.focus_comment}` : null;
 
         if (parsed.sort_override != null) {
-            client.addDirty(client.data.post_sorts.setAndList(stringify({fullname: post_fullname}), {v: parsed.sort_override}));
+            client.addDirty(client.data.setAndList("post_sorts", stringify({fullname: post_fullname}), {v: parsed.sort_override}));
         }
         const key = client.getLink("item", {fullname: comment_fullname ?? post_fullname});
         const request = client.getLink("item_replies_request", {
@@ -142,7 +142,7 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
             on_subreddit: subv.sr_name,
             sort,
         };
-        client.addDirty(client.data.post_sorts.setAndList(stringify({fullname: post_base.fullname}), sort));
+        client.addDirty(client.data.setAndList("post_sorts", stringify({fullname: post_base.fullname}), sort));
         return {
             kind: "vertical_loader",
             unfilled_parent: client.getLink("client", {}),
@@ -178,7 +178,7 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
     }
     if (parsed.kind === "user") {
         const base: BaseUser = {username: asLowercaseString(parsed.username)};
-        client.addDirty(client.data.user_sorts.setAndList(stringify(base), parsed.current));
+        client.addDirty(client.data.setAndList("user_sorts", stringify(base), parsed.current));
         return p2.prefilledVerticalLoader(content, client.getLink("user", base), undefined);
     }
     if (parsed.kind === "wiki") {
@@ -198,7 +198,7 @@ async function urlToOneLoaderFromParsed(content: Generic.Page2Content, parsed: P
     }
     if (parsed.kind === "subreddits") {
         const base: BaseSubreddits = {};
-        client.addDirty(client.data.subreddits_sorts.setAndList(stringify({}), parsed.value));
+        client.addDirty(client.data.setAndList("subreddits_sorts", stringify({}), parsed.value));
         return p2.prefilledVerticalLoader(content, client.getLink("subreddits", base), undefined);
     }
     // if(parsed.kind === "inbox") {
@@ -444,29 +444,25 @@ function isDuplicates(sort: Sortv | "infer") : sort is DuplicaesSortV {
 // * you can get a base_post 'as_parent' but no other way
 
 // TODO: we should make ObservableDb<...> that automatically generates all this. so we don't need to manually add every key.
-export type RedditClientData = {
+export type RedditClientData = ObservableData<{
+    items: [Stringified<BaseItem>, Reddit.Item],
+    listings: [Stringified<SortedObjectID>, Reddit.Listing | ""],
+    mores: [Stringified<BaseMore2>, Reddit.More],
+    widgets: [Stringified<BaseSubreddit>, Reddit.ApiWidgets],
+    widget: [Stringified<BaseWidget>, Reddit.Widget],
+    subreddit_t5s: [Stringified<BaseSubreddit>, Reddit.T5], // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
+    user_abouts: [Stringified<BaseUser>, Reddit.T2], // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
+    user_trophies: [Stringified<BaseTrophy>, Reddit.T6], // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
+    user_trophy_lists: [Stringified<BaseUser>, Reddit.TrophyList], // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
+    user_moderated_subreddits: [Stringified<BaseUser>, Reddit.ModeratedList],
+    wikipages: [Stringified<BaseRevisedWikipage>, Reddit.WikiPage],
+    subreddit_all_wikipages: [Stringified<BaseSubreddit>, Reddit.WikipageListing],
     
-    // we should be able to have this not include sort and instead have comment replies be per-sort. but for now it will include it.
-    // currently, this maps from JSON.stringify(BaseComment) to FullCommentT1
-    // but instead we should split this up:
-    items: ObservableMap<Stringified<BaseItem>, Reddit.Item, Generic.Link<unknown>>,
-    listings: ObservableMap<Stringified<SortedObjectID>, Reddit.Listing | "", Generic.Link<unknown>>,
-    mores: ObservableMap<Stringified<BaseMore2>, Reddit.More, Generic.Link<unknown>>,
-    widgets: ObservableMap<Stringified<BaseSubreddit>, Reddit.ApiWidgets, Generic.Link<unknown>>,
-    widget: ObservableMap<Stringified<BaseWidget>, Reddit.Widget, Generic.Link<unknown>>,
-    subreddit_t5s: ObservableMap<Stringified<BaseSubreddit>, Reddit.T5, Generic.Link<unknown>>, // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
-    user_abouts: ObservableMap<Stringified<BaseUser>, Reddit.T2, Generic.Link<unknown>>, // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
-    user_trophies: ObservableMap<Stringified<BaseTrophy>, Reddit.T6, Generic.Link<unknown>>, // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
-    user_trophy_lists: ObservableMap<Stringified<BaseUser>, Reddit.TrophyList, Generic.Link<unknown>>, // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
-    user_moderated_subreddits: ObservableMap<Stringified<BaseUser>, Reddit.ModeratedList, Generic.Link<unknown>>,
-    wikipages: ObservableMap<Stringified<BaseRevisedWikipage>, Reddit.WikiPage, Generic.Link<unknown>>,
-    subreddit_all_wikipages: ObservableMap<Stringified<BaseSubreddit>, Reddit.WikipageListing, Generic.Link<unknown>>,
-    
-    user_sorts: ObservableMap<Stringified<BaseUser>, UserSort, Generic.Link<unknown>>,
-    post_sorts: ObservableMap<Stringified<BaseItem>, Sortv, Generic.Link<unknown>>,
-    subreddit_sorts: ObservableMap<Stringified<BaseSubreddit>, SubSort, Generic.Link<unknown>>,
-    subreddits_sorts: ObservableMap<Stringified<BaseSubreddits>, SubredditsSort, Generic.Link<unknown>>,
-};
+    user_sorts: [Stringified<BaseUser>, UserSort],
+    post_sorts: [Stringified<BaseItem>, Sortv],
+    subreddit_sorts: [Stringified<BaseSubreddit>, SubSort],
+    subreddits_sorts: [Stringified<BaseSubreddits>, SubredditsSort],
+}, Generic.Link<unknown>>;
 type BaseSubreddits = {_?: undefined};
 type BaseTrophy = {
     user: BaseUser,
@@ -477,63 +473,13 @@ type BaseWidget = {
     widget: string,
 };
 export function initRedditClientData(prev?: RedditClientData): RedditClientData {
-    return {
-        items: new ObservableMap(prev?.items),
-        listings: new ObservableMap(prev?.listings),
-        mores: new ObservableMap(prev?.mores),
-        widgets: new ObservableMap(prev?.widgets),
-        widget: new ObservableMap(prev?.widget),
-        subreddit_t5s: new ObservableMap(prev?.subreddit_t5s),
-        user_abouts: new ObservableMap(prev?.user_abouts),
-        user_trophies: new ObservableMap(prev?.user_trophies),
-        user_trophy_lists: new ObservableMap(prev?.user_trophy_lists),
-        user_moderated_subreddits: new ObservableMap(prev?.user_moderated_subreddits),
-        wikipages: new ObservableMap(prev?.wikipages),
-        subreddit_all_wikipages: new ObservableMap(prev?.subreddit_all_wikipages),
-
-        user_sorts: new ObservableMap(prev?.user_sorts),
-        post_sorts: new ObservableMap(prev?.post_sorts),
-        subreddit_sorts: new ObservableMap(prev?.subreddit_sorts),
-        subreddits_sorts: new ObservableMap(prev?.subreddits_sorts),
-    };
+    return new ObservableData(prev);
 }
 export function trackRedditClientData(data: RedditClientData, link: Generic.Link<unknown>): void {
-    data.items.beginTracking(link);
-    data.listings.beginTracking(link);
-    data.mores.beginTracking(link);
-    data.widgets.beginTracking(link);
-    data.widget.beginTracking(link);
-    data.subreddit_t5s.beginTracking(link);
-    data.user_abouts.beginTracking(link);
-    data.user_trophies.beginTracking(link);
-    data.user_trophy_lists.beginTracking(link);
-    data.user_moderated_subreddits.beginTracking(link);
-    data.wikipages.beginTracking(link);
-    data.subreddit_all_wikipages.beginTracking(link);
-
-    data.user_sorts.beginTracking(link);
-    data.post_sorts.beginTracking(link);
-    data.subreddit_sorts.beginTracking(link);
-    data.subreddits_sorts.beginTracking(link);
+    data.beginTracking(link);
 }
 export function untrackRedditClientData(data: RedditClientData): void {
-    data.items.endTracking();
-    data.listings.endTracking();
-    data.mores.endTracking();
-    data.widgets.endTracking();
-    data.widget.endTracking();
-    data.subreddit_t5s.endTracking();
-    data.user_abouts.endTracking();
-    data.user_trophies.endTracking();
-    data.user_trophy_lists.endTracking();
-    data.user_moderated_subreddits.endTracking();
-    data.wikipages.endTracking();
-    data.subreddit_all_wikipages.endTracking();
-
-    data.user_sorts.endTracking();
-    data.post_sorts.endTracking();
-    data.subreddit_sorts.endTracking();
-    data.subreddits_sorts.endTracking();
+    data.endTracking();
 }
 
 type BaseWikipage = {
@@ -567,15 +513,15 @@ function moreBase(more: Reddit.More, sort: PostSort): BaseMore2 {
 }
 
 function userSortMethod(client: RedditClient, base: BaseUser): UserSort {
-    return client.data.user_sorts.get(stringify(base)) ?? {kind: "sorted-tab", tab: "overview", sort: {sort: "new", t: "all"}};
+    return client.data.get("user_sorts", stringify(base)) ?? {kind: "sorted-tab", tab: "overview", sort: {sort: "new", t: "all"}};
 }
 function subSortMethod(client: RedditClient, base: BaseSubreddit): SubSort {
-    return client.data.subreddit_sorts.get(stringify(base)) ?? subDefaultSort(base);
+    return client.data.get("subreddit_sorts", stringify(base)) ?? subDefaultSort(base);
 }
 function postSortMethod(client: RedditClient, base: BaseItem): Sortv {
-    const post = client.data.items.get(stringify(base));
+    const post = client.data.get("items", stringify(base));
     if (post?.kind === "t1") return postSortMethod(client, {fullname: post.data.link_id});
-    const override = client.data.post_sorts.get(stringify(base));
+    const override = client.data.get("post_sorts", stringify(base));
     if (override) return override;
     if (post?.kind === "t3") {
         if (post.data.suggested_sort != null) {
@@ -697,13 +643,13 @@ export const resolvers = {
         return opaque_loader.encode({kind: "user_moderated_subreddits", user: base});
     },
     user_card(client, base: BaseUser): Generic.FilledIdentityCard {
-        const user = client.data.user_abouts.get(stringify(base));
+        const user = client.data.get("user_abouts", stringify(base));
         if (user == null) return not_loaded_obj;
 
         return userIdentityCard(user.data);
     },
     user_about(client, base: BaseUser): Generic.Post {
-        const user = client.data.user_abouts.get(stringify(base));
+        const user = client.data.get("user_abouts", stringify(base));
         if (user == null) return not_loaded_obj;
         const content = client.dirty_content;
 
@@ -729,7 +675,7 @@ export const resolvers = {
         };
     },
     user_trophies(client, base: BaseUser): Generic.HorizontalLoaded {
-        const trophies = client.data.user_trophy_lists.get(stringify(base));
+        const trophies = client.data.get("user_trophy_lists", stringify(base));
         if (trophies == null) return not_loaded_obj;
         return [
             ...trophies.data.trophies.map((trophy): Generic.HorizontalLoadedItem => {
@@ -738,7 +684,7 @@ export const resolvers = {
         ];
     },
     user_trophy(client, base: BaseTrophy): Generic.Post {
-        const trophy = client.data.user_trophies.get(stringify(base));
+        const trophy = client.data.get("user_trophies", stringify(base));
         if (trophy == null) return not_loaded_obj;
         const body: Generic.Body[] = [];
         return {
@@ -788,8 +734,8 @@ export const resolvers = {
         });
     },
     user_sidebar(client, base: BaseUser): Generic.HorizontalLoaded {
-        const identity = client.data.user_abouts.get(stringify(base));
-        const moderated = client.data.user_moderated_subreddits.get(stringify(base));
+        const identity = client.data.get("user_abouts", stringify(base));
+        const moderated = client.data.get("user_moderated_subreddits", stringify(base));
         return [
             ...identity != null ? [client.getLink("user_about", base)] : [{
                 kind: "horizontal_loader",
@@ -937,8 +883,8 @@ export const resolvers = {
             raw_value: null,
         };
 
-        const widgets = client.data.widgets.get(stringify(base));
-        const t5 = client.data.subreddit_t5s.get(stringify(base));
+        const widgets = client.data.get("widgets", stringify(base));
+        const t5 = client.data.get("subreddit_t5s", stringify(base));
         console.log("subreddit_card", base, widgets, t5);
         if (t5 == null || t5.kind !== "t5") return not_loaded_obj;
         return subredditHeaderExists({
@@ -952,8 +898,8 @@ export const resolvers = {
     subreddit_widgets(client, base: BaseSubreddit): Generic.HorizontalLoaded {
         if (special_subreddits.has(base.sr_name)) return [];
 
-        const widgets = client.data.widgets.get(stringify(base));
-        const t5 = client.data.subreddit_t5s.get(stringify(base));
+        const widgets = client.data.get("widgets", stringify(base));
+        const t5 = client.data.get("subreddit_t5s", stringify(base));
         if (widgets == null || t5 == null || t5.kind !== "t5") return not_loaded_obj;
 
         return [
@@ -970,7 +916,7 @@ export const resolvers = {
     },
     subreddit_oldsidebar_widget(client, base: BaseSubreddit): Generic.Post {
         const content = client.dirty_content;
-        const t5 = client.data.subreddit_t5s.get(stringify(base));
+        const t5 = client.data.get("subreddit_t5s", stringify(base));
         if (t5 == null || t5.kind !== "t5") return not_loaded_obj;
         return {
             kind: "post",
@@ -995,7 +941,7 @@ export const resolvers = {
         };
     },
     widget(client, base: BaseWidget): Generic.Post {
-        const widget = client.data.widget.get(stringify(base));
+        const widget = client.data.get("widget", stringify(base));
         if (!widget) return not_loaded_obj;
         const content = client.dirty_content;
         
@@ -1315,7 +1261,7 @@ export const resolvers = {
         } else {
             throw new Error("todo support base kind: " + stringify(base));
         }
-        const full = client.data.listings.get(stringify(sorted));
+        const full = client.data.get("listings", stringify(sorted));
         if (full == null) return not_loaded_obj;
         if (full === "") return [];
         return [
@@ -1326,7 +1272,7 @@ export const resolvers = {
                     if (sorted.kind !== "item") return p2.createSymbolLinkToError(content, "more without sort", ch);
                     const sort: Sortv = sorted.sort;
                     if (isDuplicates(sort)) return p2.createSymbolLinkToError(content, "more link with 'duplicates' sort", ch);
-                    const parent_content = client.data.items.get(stringify({fullname: ch.data.parent_id}));
+                    const parent_content = client.data.get("items", stringify({fullname: ch.data.parent_id}));
                     if (!parent_content) return p2.createSymbolLinkToError(content, "more is missing parent item", ch);
                     let post_fullname: string;
                     let subreddit_name: LowercaseString;
@@ -1391,7 +1337,7 @@ export const resolvers = {
         });
     },
     item_replies_request(client, base: {subreddit: LowercaseString, post_fullname: string, comment_fullname: string | null}): Generic.Opaque<"loader"> {
-        const sort = client.data.post_sorts.get(stringify({fullname: base.post_fullname}));
+        const sort = client.data.get("post_sorts", stringify({fullname: base.post_fullname}));
         return opaque_loader.encode({
             kind: "view_post",
             post: {fullname: base.post_fullname as `t3_`, on_subreddit: base.subreddit, sort: sort ?? "infer"},
@@ -1402,7 +1348,7 @@ export const resolvers = {
     },
 
     item(client, base: BaseItem): Generic.Post {
-        const full = client.data.items.get(stringify(base));
+        const full = client.data.get("items", stringify(base));
         if (!full) return not_loaded_obj;
         if (full.kind === "t1") {
             return resolveT1(client, base, full);
@@ -1413,7 +1359,7 @@ export const resolvers = {
     },
 
     loadmore_request(client, base: {base: BaseMore2, sort: Sortv | "infer", post_fullname: string}): Generic.Opaque<"loader"> {
-        const full = client.data.mores.get(stringify(base.base));
+        const full = client.data.get("mores", stringify(base.base));
         if (full == null || full.kind !== "more" || full.data.children.length === 0) throw new Error("loadmore issue");
         return opaque_loader.encode({
             kind: "morechildren",
@@ -1424,12 +1370,12 @@ export const resolvers = {
     },
 
     wiki(client, base: BaseSubreddit): Generic.Post {
-        const content = client.data.subreddit_all_wikipages.get(stringify(base));
+        const content = client.data.get("subreddit_all_wikipages", stringify(base));
         if (!content) return not_loaded_obj;
         return not_loaded_obj; // TODO
     },
     wikipage(client, base: BaseRevisedWikipage): Generic.Post {
-        const content = client.data.wikipages.get(stringify(base));
+        const content = client.data.get("wikipages", stringify(base));
         if (!content) return not_loaded_obj;
         return {
             kind: "post",
@@ -1531,7 +1477,7 @@ export type ResolverL1 = keyof typeof resolvers;
 export const not_loaded_obj: never = Symbol("not_loaded") as never;
 
 function subredditsSortMethod(client: RedditClient, base: BaseSubreddits): SubredditsSort {
-    return client.data.subreddits_sorts.get(stringify(base)) ?? {path: ["subreddits", "popular"]};
+    return client.data.get("subreddits_sorts", stringify(base)) ?? {path: ["subreddits", "popular"]};
 }
 
 function itemReplies(client: RedditClient, base: BaseItem, full: Reddit.T1 | Reddit.T3): {replies: Generic.PostReplies} {
@@ -2021,22 +1967,22 @@ function addItem(client: RedditClient, item: Reddit.Item, allow_replies: AllowRe
     if (item.kind === "more") {
         if (parent.kind !== "item") return; // need sort for morechildren
         if (isDuplicates(parent.sort)) return; // duplicates doesn't have 'morechildren', it has 'after'
-        client.addDirty(client.data.mores.setAndList(stringify(moreBase(item, parent.sort)), item));
+        client.addDirty(client.data.setAndList("mores", stringify(moreBase(item, parent.sort)), item));
         return;
     }
     if (item.kind === "t6") {
         if (parent.kind !== "user_trophies") return; // need user_trophies for trophy
         // t6 (trophies) don't have usable names. instead we need to map them as (label,user)
-        client.addDirty(client.data.user_trophies.setAndList(stringify({label: item.data.name, user: parent.user}), item)); 
+        client.addDirty(client.data.setAndList("user_trophies", stringify({label: item.data.name, user: parent.user}), item)); 
         return;
     }
     if (item.kind === "t5") {
-        client.addDirty(client.data.subreddit_t5s.setAndList(stringify({sr_name: asLowercaseString(item.data.display_name)}), item));
+        client.addDirty(client.data.setAndList("subreddit_t5s", stringify({sr_name: asLowercaseString(item.data.display_name)}), item));
         return;
     }
 
     // TODO: note that if item.kind is more and it is a depth-based loader, then the item.data.name will be bad.
-    client.addDirty(client.data.items.setAndList(stringify({fullname: item.data.name}), item));
+    client.addDirty(client.data.setAndList("items", stringify({fullname: item.data.name}), item));
 
     if (item.kind === "t1") {
         // TODO: we can probably use item.data.subreddit_id,item.data.link_id & sort
@@ -2085,7 +2031,7 @@ function addListing(client: RedditClient, parent: SortedObjectID | {kind: "none"
         // - if there is already a listing
         // - if there are multiple listings
         // - if ...
-        client.addDirty(client.data.listings.setAndList(stringify(parent), listing));
+        client.addDirty(client.data.setAndList("listings", stringify(parent), listing));
     }
     if (listing !== "") {
         for (const ch of listing.data.children) addItem(client, ch, allow_replies, parent);
@@ -2093,7 +2039,7 @@ function addListing(client: RedditClient, parent: SortedObjectID | {kind: "none"
 }
 function addT2(client: RedditClient, t2: Reddit.T2): void {
     const username = asLowercaseString(t2.data.name);
-    client.addDirty(client.data.user_abouts.setAndList(stringify({username}), t2));
+    client.addDirty(client.data.setAndList("user_abouts", stringify({username}), t2));
     addItem(client, {kind: "t5", data: t2.data.subreddit}, true, {kind: "none"});
 }
 
@@ -2113,8 +2059,8 @@ export async function loadPage2v2(
     }else if(data.kind === "subreddit_identity_and_sidebar") {
         const subreddit = data.sub;
         const base: BaseSubreddit = {sr_name: subreddit};
-        const need_widgets = !client.data.widgets.has(stringify(base));
-        const need_about = !client.data.subreddit_t5s.has(stringify(base));
+        const need_widgets = !client.data.has("widgets", stringify(base));
+        const need_about = !client.data.has("subreddit_t5s", stringify(base));
 
         const widgets_promise = need_widgets ? redditRequest(`/r/${ec(subreddit)}/api/widgets`, {method: "GET"}) : undefined;
         const about_promise = need_about ? redditRequest(`/r/${ec(subreddit)}/about`, {method: "GET"}) : undefined;
@@ -2125,9 +2071,9 @@ export async function loadPage2v2(
         }
         if (widgets_promise) {
             const widgets = await widgets_promise;
-            client.addDirty(client.data.widgets.setAndList(stringify(base), widgets));
+            client.addDirty(client.data.setAndList("widgets", stringify(base), widgets));
             for (const [key, widget] of Object.entries(widgets.items)) {
-                client.addDirty(client.data.widget.setAndList(stringify({subreddit: base, widget: key}), widget));
+                client.addDirty(client.data.setAndList("widget", stringify({subreddit: base, widget: key}), widget));
             }
         }
     }else if(data.kind === "view_post") {
@@ -2166,7 +2112,7 @@ export async function loadPage2v2(
         addListing(client, {kind: "item", item: {fullname: top_half.data.children[0]!.data.name}, sort}, bottom_half, data.focus_comment_id != null ? {after_id: data.focus_comment_id} : true);
 
         if(data.focus_comment_id != null) {
-            if (!client.data.items.has(stringify({fullname: `t1_${data.focus_comment_id}`}))) {
+            if (!client.data.has("items", stringify({fullname: `t1_${data.focus_comment_id}`}))) {
                 console.warn("TODO: mark comment as 'Comment not found (maybe it was deleted?)");
             }
         }
@@ -2260,12 +2206,12 @@ export async function loadPage2v2(
         addT2(client, info);
     } else if (data.kind === "user_moderated_subreddits") {
         const info = await redditRequest(`/user/${ec(data.user.username)}/moderated_subreddits`, {method: "GET"});
-        client.addDirty(client.data.user_moderated_subreddits.setAndList(stringify(data.user), info));
+        client.addDirty(client.data.setAndList("user_moderated_subreddits", stringify(data.user), info));
     } else if (data.kind === "wikipage") {
         await fetchWikipage(client, data.page);
     }else if (data.kind === "fetch_trophies") {
         const trophies = await redditRequest(`/api/v1/user/${ec(data.username)}/trophies`, {method: "GET"});
-        client.addDirty(client.data.user_trophy_lists.setAndList(stringify({username: data.username}), trophies));
+        client.addDirty(client.data.setAndList("user_trophy_lists", stringify({username: data.username}), trophies));
         for (const item of trophies.data.trophies) {
             addItem(client, item, true, {kind: "user_trophies", user: {username: data.username}});
         }
@@ -2284,7 +2230,7 @@ async function fetchWikipage(client: RedditClient, page: BaseRevisedWikipage, op
     } else {
         console.warn("fetchWikipage norumatch", {result_url, ruparsed, rumatch, canonical_path});
     }
-    client.addDirty(client.data.wikipages.setAndList(stringify(page), info));
+    client.addDirty(client.data.setAndList("wikipages", stringify(page), info));
     addT2(client, info.data.revision_by);
     if (opt?.canonicalize && page.page.canonical_path !== canonical_path) {
         throw new Error(`canonical path mismatch: ${JSON.stringify([page.page.canonical_path, canonical_path])}`);
@@ -2297,16 +2243,16 @@ export async function sortPage2(client: RedditClient, group: Generic.Opaque<"sor
     const option_dec = opaque_sort_option.decode(option);
     if (group_dec.kind === "sub") {
         if (option_dec.kind !== "sub") throw new Error("sort sub on non-sub: " + option_dec.kind);
-        client.addDirty(client.data.subreddit_sorts.setAndList(stringify(group_dec.sub), option_dec.sort));
+        client.addDirty(client.data.setAndList("subreddit_sorts", stringify(group_dec.sub), option_dec.sort));
     } else if (group_dec.kind === "item") {
         if (option_dec.kind !== "item") throw new Error("sort item on non-item: " + option_dec.kind);
-        client.addDirty(client.data.post_sorts.setAndList(stringify(group_dec.item), option_dec.sort));
+        client.addDirty(client.data.setAndList("post_sorts", stringify(group_dec.item), option_dec.sort));
     } else if (group_dec.kind === "user") {
         if (option_dec.kind !== "user") throw new Error("sort user on non-user: " + option_dec.kind);
-        client.addDirty(client.data.user_sorts.setAndList(stringify(group_dec.user), option_dec.sort));
+        client.addDirty(client.data.setAndList("user_sorts", stringify(group_dec.user), option_dec.sort));
     } else if (group_dec.kind === "subreddits") {
         if (option_dec.kind !== "subreddits") throw new Error("sort subreddits on non-subreddits: " + option_dec.kind);
-        client.addDirty(client.data.subreddits_sorts.setAndList(stringify(group_dec.srs), option_dec.sort));
+        client.addDirty(client.data.setAndList("subreddits_sorts", stringify(group_dec.srs), option_dec.sort));
     } else {
         throw new Error("todo sort: " + stringify(group_dec));
     }
