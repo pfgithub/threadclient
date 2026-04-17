@@ -393,9 +393,9 @@ const resolvers = {
         return full.submitted?.map((ch): Generic.HorizontalLoader => itemHorizontalLoader(client, {id: ch})) ?? [];
     },
 
-    rawlink(client, base: BaseRawlink) {
+    rawlink(client, base: BaseRawlink): Generic.Post {
         const content = client.dirty_content;
-        return result({error: null, value: {
+        return {
             kind: "post",
             content: {
                 kind: "post",
@@ -408,7 +408,7 @@ const resolvers = {
             parent: clientAsParent(content, {}),
             url: base.url,
             client_id,
-        }});
+        };
     },
 
     about(client, base: BaseListing): Generic.Post {
