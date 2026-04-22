@@ -60,13 +60,15 @@ type SCProps<T> = {
 
 function FullscreenObject(props: {children: JSX.Element, loader_or_post: FlatPost}): JSX.Element {
     return <div
-        class={"block overflow-hidden " + (
+        class={"block " + (
             props.loader_or_post.first_in_wrapper ? "sm:rounded-t-lg " : ""
         ) + (
             props.loader_or_post.last_in_wrapper ? "sm:rounded-b-lg " : ""
-        )}
+        ) + " bg-slate-100 dark:bg-zinc-800 py-[2px] sm:px-[2px]"}
     >
-        {props.children}
+        <div class={"block overflow-hidden sm:rounded-[calc(0.5rem_-_2px)]"}>
+            {props.children}
+        </div>
     </div>;
 }
 
@@ -75,7 +77,7 @@ const replace_post_special_callbacks: Record<string, SpecialCallback> = {
     'FullscreenImage@-N0D1IW1oTVxv8LLf7Ed': (props: SCProps<FullscreenImageProps>) => {
         return <FullscreenObject loader_or_post={props.loader_or_post}>
             <Clickable
-                action={{url: props.data.link_url ?? "E:", client_id: props.post.client_id}}
+                action={props.data.link_url ? {url: props.data.link_url, client_id: props.post.client_id} : undefined}
                 class={"block w-full"}
             >
                 <img

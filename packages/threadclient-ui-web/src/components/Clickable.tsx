@@ -2,7 +2,7 @@ import type * as Generic from "api-types-generic";
 import { JSX } from "solid-js";
 import { createMergeMemo, SwitchKind } from "tmeta-util-solid";
 import { navigate } from "../page1_routing";
-import { isModifiedEvent, unsafeLinkToSafeLink } from "../tc_helpers";
+import { isModifiedEvent, Safelink, unsafeLinkToSafeLink } from "../tc_helpers";
 import { getSettings } from "../util/utils_solid";
 import Page2ContentManager from "../util/Page2ContentManager";
 
@@ -18,14 +18,15 @@ export default function Clickable(props: {
 
     /// preventDefault can be called in here if you want and it will cancel the onclick
     beforeClick?: undefined | JSX.EventHandler<HTMLElement, MouseEvent>,
-    action: ClickAction,
+    action?: ClickAction,
     
     children: JSX.Element,
     disabled?: undefined | boolean,
 
     btnref?: undefined | ((el: HTMLElement) => void),
 }): JSX.Element {
-    const link_value = createMergeMemo(() => {
+    const link_value = createMergeMemo((): Safelink => {
+        if (!props.action) return {kind: "none"};
         if(typeof props.action !== "object") return ({kind: "button"} as const);
         return unsafeLinkToSafeLink(props.action.client_id, props.action.url);
     }, {key: null, merge: true});
@@ -48,7 +49,7 @@ export default function Clickable(props: {
             event.preventDefault();
             if(typeof props.action !== "object") {
                 if(props.action === "TODO") return alert("TODO");
-                return props.action(event);
+                return props.action!(event);
             }
             if(props.action.onClick) {
                 return props.action.onClick(event);
@@ -86,6 +87,11 @@ export default function Clickable(props: {
             children={props.children}
             ref={v => props.btnref?.(v)}
             disabled={props.disabled}
-        />
+        />,
+        none: () => <div
+            class={props.class}
+            children={props.children}
+            ref={v => props.btnref?.(v)}
+        />,
     }}</SwitchKind>;
 }
