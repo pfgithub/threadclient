@@ -9,6 +9,7 @@ declare module "webext-bridge" {
         "get-settings": ProtocolWithReturn<{_?: never}, ExtensionSettings>;
         "reset-settings": ProtocolWithReturn<{_?: never}, ExtensionSettings>;
         "set-feature": ProtocolWithReturn<{name: string, value: boolean}, ExtensionSettings>,
+        "open-settings": ProtocolWithReturn<{_?: never}, void>,
     }
 }
 

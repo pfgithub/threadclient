@@ -265,6 +265,9 @@ onMessage("set-feature", async (opts): Promise<ExtensionSettings> => {
     await storage.local.set({features: features.size === 0 ? undefined : [...features].join(",")});
     return await getSettings();
 });
+onMessage("open-settings", async (): Promise<void> => {
+    browser.runtime.openOptionsPage();
+});
 
 queueUpdateSettings();
 
