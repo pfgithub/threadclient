@@ -1,6 +1,6 @@
-import { createEffect, createMemo, createSignal, JSX } from "solid-js";
+import { createEffect, createSignal, JSX } from "solid-js";
 import { render } from "solid-js/web";
-import { ClickAction, localStorageSignal, runTask, Show, showError, UserCancelError } from "tmeta-util-solid";
+import { ClickAction, runTask, Show, showError, UserCancelError } from "tmeta-util-solid";
 import { sendMessage } from "webext-bridge";
 import browser from "webextension-polyfill";
 import { ExtensionSettings } from "../shim";
@@ -8,10 +8,6 @@ import { per_client_permissions } from "../all";
 // import browser from "webextension-polyfill";
 
 function Options(props: {current: ExtensionSettings, update: (settings: ExtensionSettings) => void}): JSX.Element {
-    const [gqlToken, setGqlToken] = localStorageSignal("gql_token");
-
-    const chatIndicatorsEnabled = () => gqlToken() != null && gqlToken()!.startsWith("Bearer ");
-
     const hasFeature = (name: string) => props.current.features.has(name);
     const hasPermission = (name: string) => props.current.permissions.has(name);
     const setFeature = (name: string, value: boolean) => {
