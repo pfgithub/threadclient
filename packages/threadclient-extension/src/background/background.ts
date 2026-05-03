@@ -1,5 +1,8 @@
 import { resolveThreadClientSupportedURL } from "tmeta-util";
-import browser from "webextension-polyfill";
+import { onMessage } from "webext-bridge";
+import browser, { storage } from "webextension-polyfill";
+import { ExtensionSettings } from "../shim";
+import { all_optional_origins, all_optional_permissions } from "../all";
 // import { sendMessage, onMessage } from "webext-bridge";
 
 // only on dev mode
@@ -13,7 +16,7 @@ if (import.meta.hot) {
 
 browser.runtime.onInstalled.addListener((): void => {
     // eslint-disable-next-line no-console
-    console.log("Extension installed");
+    browser.runtime.openOptionsPage().catch(console.error);
 });
 
 // automatic redirect
@@ -27,6 +30,7 @@ browser.webRequest.onBeforeRequest.addListener(
         // TODO: we should reuse unsafeLinkToSafeLink here
         const resolved = resolveThreadClientSupportedURL(details.url);
         if(resolved != null) {
+            if (!settings_cache?.features.has(`${resolved.client}:redirect`)) return; // automatic redirect on this url is disabled
             // don't redirect if we got here from a link on threadclient or
             // a link on reddit.com
 
@@ -52,61 +56,8 @@ browser.webRequest.onBeforeRequest.addListener(
 
         return;
     },
-    { urls: ["*://*.reddit.com/*"] },
+    { urls: [...all_optional_origins] },
     ["blocking"],
-);
-
-browser.webRequest.onBeforeSendHeaders.addListener(
-    (details) => {
-        if(details.method !== "POST") return;
-
-        const origin_url = new URL(details.originUrl ?? "https://example.com/");
-        if(origin_url.hostname === "reddit.com" || origin_url.hostname.endsWith(".reddit.com")) {
-            const authorization = (details.requestHeaders ?? [])
-                .find(header => header.name === "Authorization")
-            ;
-            if(!authorization) return;
-
-            const token = authorization.value;//.replace(/^Bearer /, "");
-            if(token == null || token.length === 0) return;
-
-            const prev_token = localStorage.getItem("gql_token");
-            if(prev_token === token) return; // no change needed
-
-            localStorage.setItem("gql_token", token);
-
-            // might be a good idea to request consent from the user
-            // eg:
-            // - if they've just gone to reddit.com, show a notification like
-            //   "allow threadclient to see if you have unread messages?"
-            // or if they get here from a link in threadclient, assume they gave consent.
-            // or if there is already a previous token, assume they gave consent.
-
-            return; // no changes to make.
-        }else if(origin_url.hostname === "thread.pfg.pw" || (allowDev() && origin_url.hostname === "localhost")) {
-            // add the token to the request
-
-            const token = localStorage.getItem("gql_token");
-            if(token == null || token.length === 0) return {
-                cancel: true,
-            };
-
-            (details.requestHeaders ??= []).push({
-                name: "Authorization",
-                value: token, // already says "Bearer"
-            });
-
-            return {
-                requestHeaders: details.requestHeaders,
-            };
-        }else{
-            return;
-        }
-    },
-    { urls: ["https://gql.reddit.com/*"] },
-    ["blocking", "requestHeaders"],//, "extraHeaders"],
-    // for *.reddit.com origin, this should be nonblocking.
-    // for thread.pfg.pw origin, this should be blocking.
 );
 
 function allowDev(): boolean {
@@ -179,6 +130,79 @@ browser.webRequest.onHeadersReceived.addListener(
     { urls: ["https://gql.reddit.com/*", "https://oauth.reddit.com/*"] },
     ["blocking", "responseHeaders"],
 );
+
+browser.permissions.onAdded.addListener(queueUpdateSettings);
+browser.permissions.onRemoved.addListener(queueUpdateSettings);
+browser.storage.onChanged.addListener(queueUpdateSettings);
+let settings_cache: ExtensionSettings | undefined;
+
+async function updateSettings(): Promise<void> {
+    const features_req = storage.local.get(["features"]);
+    const perms_req = browser.permissions.getAll();
+    const features = await features_req;
+    const perms = await perms_req;
+
+    const features_set = new Set<string>(features["features"]?.split(",") ?? []);
+    const permissions = new Set<string>();
+    const origins = new Set(perms?.origins ?? []);
+    if (origins.has("*://*.reddit.com/*")) permissions.add("reddit");
+    if (origins.has("*://news.ycombinator.com/*")) permissions.add("hackernews");
+
+    settings_cache = {
+        features: features_set,
+        permissions,
+    };
+}
+let updating = false;
+let update_again = false;
+let update_listeners: (() => void)[] = [];
+function queueUpdateSettings(): void {
+    if (updating) {
+        update_again = true;
+        return;
+    }
+    updating = true;
+    updateSettings().then(() => {
+        updating = false;
+        if (update_again) {
+            update_again = false;
+            queueUpdateSettings();
+        } else {
+            // done, announce
+            for (const listener of update_listeners.splice(0, update_listeners.length)) {
+                listener();
+            }
+        }
+    });
+}
+async function getSettings(): Promise<ExtensionSettings> {
+    queueUpdateSettings();
+    await new Promise<void>(r => update_listeners.push(r));
+    return settings_cache!;
+}
+onMessage("reset-settings", async (): Promise<ExtensionSettings> => {
+    await storage.local.remove(["features"]);
+    await browser.permissions.remove({permissions: [...all_optional_permissions], origins: [...all_optional_origins]});
+    // browser.permissions.remove(); // TODO
+    return await getSettings();
+});
+onMessage("get-settings", async (): Promise<ExtensionSettings> => {
+    return await getSettings();
+});
+onMessage("set-feature", async (opts): Promise<ExtensionSettings> => {
+    const features_req = storage.local.get(["features"]);
+    const features_value = await features_req;
+    const features = new Set<string>(features_value["features"]?.split(",") ?? []);
+    if (opts.data.value) {
+        features.add(opts.data.name);
+    } else {
+        features.delete(opts.data.name);
+    }
+    await storage.local.set({features: features.size === 0 ? undefined : [...features].join(",")});
+    return await getSettings();
+});
+
+queueUpdateSettings();
 
 // communication example: send previous tab title from background page
 // see shim.d.ts for type declaration

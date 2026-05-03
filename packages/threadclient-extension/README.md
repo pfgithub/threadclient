@@ -1,3 +1,7 @@
+dev
+
+`bun --bun run dev`, then go to `about:debugging#/runtime/this-firefox` and load extension/manifest.json as a temporary add-on
+
 # building:
 
 `bun --bun run build`

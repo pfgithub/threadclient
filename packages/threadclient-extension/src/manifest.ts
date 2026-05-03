@@ -2,6 +2,7 @@ import fs from "fs-extra";
 import type { Manifest } from "webextension-polyfill";
 import type PkgType from "../package.json";
 import { is_dev, port, r } from "./scripts/utils";
+import { all_optional_origins, all_optional_permissions } from "./all";
 
 export async function getManifest(): Promise<Manifest.WebExtensionManifest> {
     const pkg = await fs.readJSON(r("package.json")) as typeof PkgType;
@@ -42,14 +43,13 @@ export async function getManifest(): Promise<Manifest.WebExtensionManifest> {
             128: "./assets/threadclient.png",
         },
         permissions: [
-            "tabs",
             "storage",
             "activeTab",
             "webRequest",
             "webRequestBlocking",
-            "http://*/",
-            "https://*/",
+            "*://thread.pfg.pw/*",
         ],
+        optional_permissions: [...all_optional_permissions, ...all_optional_origins],
         content_scripts: [{
             matches: ["*://*.reddit.com/*", "*://thread.pfg.pw/*", "*://news.ycombinator.com/*"],
             js: ["./dist/contentScripts/index.global.js"],

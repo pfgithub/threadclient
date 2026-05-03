@@ -23,6 +23,7 @@ Optional checklist for feature parity:
 - [ ] code links to display the raw markdown of the post
 
 Nice to have, not related to feature parity:
+- [ ] migrate to badge_indivators/v1 (for chat, inbox, and comments): https://www.reddit.com/api/badge_indicators/v1
 - [ ] page2 report screens (OneLoader<Link<ReportScreen>>, Opaque<ReportData>), report(Opaque<ReportReason>, Opaque<ReportData>, text?: string)
 - [ ] fix the sort button dropdown menus to actually be dropdowns
 - [ ] page2 logins

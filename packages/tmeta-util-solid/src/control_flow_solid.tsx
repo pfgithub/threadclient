@@ -256,3 +256,49 @@ export function createTypesafeChildren<T>(): TypesafeChildren<T> {
     const res: TypesafeChildren<T> = Object.assign(resFn, res_data);
     return res;
 }
+
+export type ClickAction = {url: string} | ClickActionFunction | null;
+export type ClickActionFunction = ((e: MouseEvent) => void);
+export type ClickActionURL = {url: string};
+export function ClickAction(props: {
+    action: ClickAction,
+    class: string,
+    children: JSX.Element,
+    disabled?: boolean,
+}): JSX.Element {
+    // we want to only rerender if the action type itself changes. otherwise it's a huge waste and loses inner state.
+    const actionKind = createMemo(() => {
+        const action = props.action;
+        if (typeof action === "function") return "function";
+        if (action && ('url' in action)) return "url";
+        return "none";
+    });
+    return <>{(() => {
+        switch (actionKind()) {
+            case "function": return <button disabled={props.disabled} class={props.class} onclick={e => (props.action as ClickActionFunction)(e)}>{props.children}</button>;
+            case "url": return <a href={props.disabled ? undefined : (props.action as ClickActionURL).url} class={props.class} target="_blank" rel={"noopener noreferrer"}>{props.children}</a>;
+            default: return <span class={props.class}>{props.children}</span>;
+        }
+    })()}</>;
+}
+
+export type TaskContext = {label: string};
+
+export function runTask<T>(p: Promise<T>, desc: TaskContext): void {
+    let timeout: number | undefined = setTimeout(() => {
+        timeout = undefined;
+        // TODO: show a notification with the task and a cancel button if a cancelation token is passed
+    }, 1000);
+    p.then(() => {
+        if (timeout != null) clearTimeout(timeout);
+    }).catch(e => showError(e, desc));
+}
+
+export class UserCancelError extends Error {}
+
+export function showError(e: unknown, context?: TaskContext): void {
+    if (e instanceof UserCancelError) return;
+    // TODO: show as a notification
+    console.error("showError", context, e);
+    alert(`running task: ${context?.label ?? "unknown"}\nerror: ${(e as Error).toString()}`);
+}

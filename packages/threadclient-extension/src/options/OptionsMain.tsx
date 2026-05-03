@@ -1,52 +1,103 @@
-import { JSX } from "solid-js";
+import { createEffect, createMemo, createSignal, JSX } from "solid-js";
 import { render } from "solid-js/web";
-import { localStorageSignal, Show } from "tmeta-util-solid";
+import { ClickAction, localStorageSignal, runTask, Show, showError, UserCancelError } from "tmeta-util-solid";
+import { sendMessage } from "webext-bridge";
+import browser from "webextension-polyfill";
+import { ExtensionSettings } from "../shim";
+import { per_client_permissions } from "../all";
 // import browser from "webextension-polyfill";
 
-function Section(opts: {title: string, children: JSX.Element}): JSX.Element {
-    // todo generate h1, h2, … based on nesting
-    return <>
-        <h3 class="font-black text-xl">{opts.title}</h3>
-        {opts.children}
-    </>;
-}
-
-function Options(): JSX.Element {
-    const [gqlToken] = localStorageSignal("gql_token");
+function Options(props: {current: ExtensionSettings, update: (settings: ExtensionSettings) => void}): JSX.Element {
+    const [gqlToken, setGqlToken] = localStorageSignal("gql_token");
 
     const chatIndicatorsEnabled = () => gqlToken() != null && gqlToken()!.startsWith("Bearer ");
 
-    const [devMode, setDevMode] = localStorageSignal("allow-dev");
+    const hasFeature = (name: string) => props.current.features.has(name);
+    const hasPermission = (name: string) => props.current.permissions.has(name);
+    const setFeature = (name: string, value: boolean) => {
+        runTask(sendMessage("set-feature", {name, value}).then(props.update), {label: "update settings"});
+    };
+    const ensurePermission = async (client: string): Promise<void> => {
+        if (hasPermission(client)) return;
+        const resp = await browser.permissions.request(per_client_permissions.get(client) ?? {});
+        if (!resp) throw new UserCancelError();
+    };
 
     return <div class="m-4">
-        <Section title="Options">
-            <p>"options loaded (dev: "+__DEV__+")"</p>
-            <Section title="Chat Unread Indicators">
-                <p>Chat indicators are {chatIndicatorsEnabled() ? "enabled" : "not enabled"}.</p>
-                <Show if={chatIndicatorsEnabled()} fallback={
-                    <p>
-                        <a
-                            href="https://www.reddit.com/#tc-chat-unread-indicators"
-                            target="_blank" rel="noopener noreferrer"
-                        >
-                            Click Here
-                        </a>
-                        to enable chat unread indicators. Make sure to log in.
-                    </p>
-                }>
-                    <p>
-                        TODO add a button to test if chat unread indicators are working.
-                    </p>
-                </Show>
-            </Section>
-            <Section title="Developer Settings">
-                <p>Dev mode is {devMode() === "true" ? "on" : "off"}.</p>
-                <button onClick={() => {
-                    setDevMode(devMode() === "true" ? null : "true");
-                }}>{devMode() === "true" ? "disable" : "enable"} dev mode</button>
-            </Section>
-        </Section>
+        <h1>ThreadClient Extension Options</h1>
+        <h2>Redirect to ThreadClient</h2>
+        <ul>
+            <li><CheckSetting
+                checked={hasPermission("reddit") && hasFeature("reddit:redirect")}
+                action={() => runTask((async () => {
+                    await ensurePermission("reddit");
+                    setFeature("reddit:redirect", !hasFeature("reddit:redirect"));
+                })(), {label: "s-link"})}
+                label="Reddit (reddit.com)"
+            /></li>
+            <li><CheckSetting
+                checked={hasPermission("hackernews") && hasFeature("hackernews:redirect")}
+                action={() => runTask((async () => {
+                    await ensurePermission("hackernews");
+                    setFeature("hackernews:redirect", !hasFeature("hackernews:redirect"));
+                })(), {label: "s-link"})}
+                label="Hacker News (news.ycombinator.com)"
+            /></li>
+        </ul>
+        <h2>Features</h2>
+        <ul>
+            <li><CheckSetting
+                checked={hasPermission("reddit") && !hasFeature("reddit:no-s-link")}
+                action={() => runTask((async () => {
+                    await ensurePermission("reddit");
+                    setFeature("reddit:no-s-link", !hasFeature("reddit:no-s-link"));
+                })(), {label: "s-link"})}
+                label="Reddit S-Link Fix"
+            /></li>
+        </ul>
+        <h2>Advanced</h2>
+        <ul>
+            <li><ClickAction class="underline" action={() => {
+                if (!confirm("reset all settings?")) return;
+                runTask(sendMessage("reset-settings", {}).then(props.update), {label: "reset settings"});
+            }}>Reset all settings</ClickAction></li>
+            <li><CheckSetting
+                checked={hasFeature("dev")}
+                action={() => {
+                    setFeature("dev", !hasFeature("dev"));
+                }}
+                label="Developer Mode"
+            /></li>
+        </ul>
+        <Show if={hasFeature("dev")}>
+            <pre><code>{JSON.stringify(props.current, (key, value) => {
+                if (value instanceof Set) return [...value];
+                return value;
+            })}</code></pre>
+        </Show>
     </div>;
 }
 
-render(() => <Options />, document.getElementById("main") ?? document.body);
+function OptionsLoader(): JSX.Element {
+    const [value, setValue] = createSignal<ExtensionSettings | null>(null);
+    createEffect(() => {
+        sendMessage("get-settings", {}).then(r => setValue(r)).catch(showError);
+    });
+    return <Show if={value() != null} fallback={"Loading settings…"}><Options current={value()!} update={r => {
+        setValue(r);
+    }} /></Show>;
+}
+
+function CheckSetting(props: {
+    checked: boolean, action: ClickAction, label: JSX.Element,
+}): JSX.Element {
+    return <ClickAction action={props.action} class="">
+        <FakeCheckbox checked={props.checked} /> {props.label}
+    </ClickAction>;
+}
+
+function FakeCheckbox(props: {checked: boolean}): JSX.Element {
+    return <div class={"inline-block rounded-sm outline outline-black outline-1 w-3 h-3 border-white border-1 " + (props.checked ? "bg-black" : "")} aria-label={props.checked ? "Checked" : "Unchecked"}></div>
+}
+
+render(() => <OptionsLoader />, document.getElementById("main") ?? document.body);
