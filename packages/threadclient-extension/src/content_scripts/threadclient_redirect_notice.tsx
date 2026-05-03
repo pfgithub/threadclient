@@ -32,8 +32,6 @@ export function showNotifications(
     client: string,
 ): (() => void) {
     let no_ask_again: HTMLInputElement | undefined;
-    // consider thread.pfg.pw/#https://…
-    // apparently the # isn't sent to the webserver which is kinda neat
     return render(() => <>
         <Notification>
             <div>
@@ -41,7 +39,7 @@ export function showNotifications(
                     <input type="checkbox" ref={el => {no_ask_again = el}} /> Don't ask again
                 </label>
             </div>
-            <a class="text-blue-500 hover:underline" href={"https://thread.pfg.pw/"+currentURL()} on:click={() => {
+            <a class="text-blue-500 hover:underline" href={"https://thread.pfg.pw/#"+currentURL()} on:click={() => {
                 if (no_ask_again?.checked) {
                     sendMessage("set-feature", {name: `${client}:redirect`, value: true}).catch(console.error);
                 }
