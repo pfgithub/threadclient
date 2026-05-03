@@ -1,7 +1,6 @@
-import { JSX, createSignal, Accessor, Setter } from "solid-js";
+import { JSX, createSignal } from "solid-js";
 import { render } from "solid-js/web";
-import { NotificationsType } from "./content_script";
-import { Show } from "tmeta-util-solid";
+import { sendMessage } from "webext-bridge";
 
 declare module "solid-js" {
     // eslint-disable-next-line @typescript-eslint/no-shadow
@@ -22,31 +21,39 @@ window.addEventListener("locationchange", () => {
 });
 
 function Notification(props: {children: JSX.Element}): JSX.Element {
-    return <div class="w-400px <sm:w-auto <sm:left-0 bg-black text-white rounded-md shadow-md m-4 p-4">
+    return <div class="text-base font-sans w-400px <sm:w-auto <sm:left-0 bg-black text-white rounded-md shadow-md m-4 p-4">
         {props.children}
     </div>;
 }
 
 export function showNotifications(
     shadow_dom: Node,
-    notifications: Accessor<NotificationsType>,
-    setNotifications: Setter<NotificationsType>,
-): void {
+    close: () => void,
+    client: string,
+): (() => void) {
+    let no_ask_again: HTMLInputElement | undefined;
     // consider thread.pfg.pw/#https://…
     // apparently the # isn't sent to the webserver which is kinda neat
-    render(() => <>
-        <Show if={notifications().ask_to_redirect}>
-            <Notification>
-                <a class="text-blue-500 hover:underline" href={"https://thread.pfg.pw/"+currentURL()}>
-                    Redirect to ThreadClient
-                </a>{" "}
-                <button on:click={() => {
-                    setNotifications(v => ({
-                        ...v,
-                        ask_to_redirect: false,
-                    }));
-                }}>Close</button>
-            </Notification>
-        </Show>
+    return render(() => <>
+        <Notification>
+            <div>
+                <label>
+                    <input type="checkbox" ref={el => {no_ask_again = el}} /> Don't ask again
+                </label>
+            </div>
+            <a class="text-blue-500 hover:underline" href={"https://thread.pfg.pw/"+currentURL()} on:click={() => {
+                if (no_ask_again?.checked) {
+                    sendMessage("set-feature", {name: `${client}:redirect`, value: true}).catch(console.error);
+                }
+            }}>
+                Redirect to ThreadClient
+            </a>{" "}
+            <button on:click={() => {
+                if (no_ask_again?.checked) {
+                    sendMessage("set-feature", {name: `${client}:no-manual-redirect`, value: true}).catch(console.error);
+                }
+                close();
+            }}>Close</button>
+        </Notification>
     </>, shadow_dom);
 }

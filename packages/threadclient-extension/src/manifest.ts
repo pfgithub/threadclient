@@ -43,6 +43,7 @@ export async function getManifest(): Promise<Manifest.WebExtensionManifest> {
             128: "./assets/threadclient.png",
         },
         permissions: [
+            "tabs",
             "storage",
             "activeTab",
             "webRequest",
@@ -50,10 +51,6 @@ export async function getManifest(): Promise<Manifest.WebExtensionManifest> {
             "*://thread.pfg.pw/*",
         ],
         optional_permissions: [...all_optional_permissions, ...all_optional_origins],
-        content_scripts: [{
-            matches: ["*://*.reddit.com/*", "*://thread.pfg.pw/*", "*://news.ycombinator.com/*"],
-            js: ["./dist/contentScripts/index.global.js"],
-        }],
         web_accessible_resources: [
             "dist/contentScripts/style.css",
         ],

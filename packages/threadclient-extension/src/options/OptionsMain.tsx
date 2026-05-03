@@ -55,6 +55,25 @@ function Options(props: {current: ExtensionSettings, update: (settings: Extensio
                 label="Reddit S-Link Fix"
             /></li>
         </ul>
+        <h2>Ask to Redirect</h2>
+        <ul>
+            <li><CheckSetting
+                checked={hasPermission("reddit") && !hasFeature("reddit:no-manual-redirect")}
+                action={() => runTask((async () => {
+                    await ensurePermission("reddit");
+                    setFeature("reddit:no-manual-redirect", !hasFeature("reddit:no-manual-redirect"));
+                })(), {label: "s-link"})}
+                label="Reddit (reddit.com)"
+            /></li>
+            <li><CheckSetting
+                checked={hasPermission("hackernews") && !hasFeature("hackernews:no-manual-redirect")}
+                action={() => runTask((async () => {
+                    await ensurePermission("hackernews");
+                    setFeature("hackernews:no-manual-redirect", !hasFeature("hackernews:no-manual-redirect"));
+                })(), {label: "s-link"})}
+                label="Hacker News (news.ycombinator.com)"
+            /></li>
+        </ul>
         <h2>Advanced</h2>
         <ul>
             <li><ClickAction class="underline" action={() => {

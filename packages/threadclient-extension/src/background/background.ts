@@ -2,63 +2,124 @@ import { resolveThreadClientSupportedURL } from "tmeta-util";
 import { onMessage } from "webext-bridge";
 import browser, { storage } from "webextension-polyfill";
 import { ExtensionSettings } from "../shim";
-import { all_optional_origins, all_optional_permissions } from "../all";
+import { all_optional_origins, all_optional_permissions, per_client_permissions } from "../all";
 // import { sendMessage, onMessage } from "webext-bridge";
 
-// only on dev mode
-// @ts-expect-error
-if (import.meta.hot) {
-    // @ts-expect-error for background HMR
-    import("/@vite/client");
-    // load latest content script
-    import("./content_script_hmr");
-}
+// // only on dev mode
+// // @ts-expect-error
+// if (import.meta.hot) {
+//     // @ts-expect-error for background HMR
+//     import("/@vite/client");
+//     it's broken right now. re-enable later.
+// }
 
-browser.runtime.onInstalled.addListener((): void => {
-    // eslint-disable-next-line no-console
-    browser.runtime.openOptionsPage().catch(console.error);
+browser.runtime.onInstalled.addListener((reason): void => {
+    if (reason.reason === "install") {
+        browser.runtime.openOptionsPage().catch(console.error);
+    }
 });
 
-// automatic redirect
-// TODO only when enabled + with permission
-browser.webRequest.onBeforeRequest.addListener(
-    (details) => {
-        if (details.type !== "main_frame" || details.method !== "GET") {
+let activeContentScripts: browser.ContentScripts.RegisteredContentScript | undefined;
+let existing_content_script_origins = new Set();
+async function updateContentScripts() {
+    const settings = settings_cache!;
+
+    const origins = new Set<string>();
+    origins.add("*://thread.pfg.pw/*");
+    for (const client of settings.permissions ?? []) {
+        if (!settings.features.has(`${client}:no-manual-redirect`)) {
+            const perms = per_client_permissions.get(client);
+            for (const origin of perms?.origins ?? []) origins.add(origin);
+        }
+    }
+
+    console.log("updateContentScripts", {from: [...existing_content_script_origins].sort().join(" "), to: [...origins].sort().join(" ")});
+    if ([...existing_content_script_origins].sort().join(" ") === [...origins].sort().join(" ")) return; // no change. don't need to reregister listener.
+    console.log("-> update");
+    existing_content_script_origins = origins;
+    activeContentScripts?.unregister();
+    activeContentScripts = undefined;
+    activeContentScripts = await browser.contentScripts.register({
+        matches: [...origins],
+        js: [{file: "/dist/contentScripts/index.global.js"}],
+        runAt: "document_end",
+    });
+
+    /*
+// Firefox fetch files from cache instead of reloading changes from disk,
+// hmr will not work as Chromium based browser
+browser.webNavigation.onCommitted.addListener(({ tabId: tab_id, frameId: frame_id, url }) => {
+    // Filter out non main window events.
+    if (frame_id !== 0) return;
+
+    if (isForbiddenUrl(url)) return;
+
+    // inject the latest scripts
+    browser.tabs.executeScript(tab_id, {
+        file: `${is_firefox ? "" : "."}/dist/contentScripts/index.global.js`,
+        runAt: "document_end",
+    }).catch(error => console.error(error));
+});
+    */
+}
+
+function onBeforeRequestListener(details: browser.WebRequest.OnBeforeRequestDetailsType) {
+    if (details.type !== "main_frame" || details.method !== "GET") {
+        return;
+    }
+
+    const resolved = resolveThreadClientSupportedURL(details.url);
+    if(resolved != null) {
+        if (!settings_cache?.features.has(`${resolved.client}:redirect`)) return;
+
+        if(details.originUrl === undefined) {
+            return; // navigating by manually entering the url
+        }
+
+        const origin_url = new URL(details.originUrl);
+        if (origin_url.hostname === "thread.pfg.pw") {
+            // so if you click a raw! link on threadclient, it links out
+            return;
+        }
+        const origin_resolved = resolveThreadClientSupportedURL(details.originUrl);
+        if (origin_resolved?.client === resolved.client) {
+            // so if you click a reddit link on reddit, it stays on reddit
+            // but if you click a hackernews link on reddit, it goes to threadclient
             return;
         }
 
-        // TODO: we should reuse unsafeLinkToSafeLink here
-        const resolved = resolveThreadClientSupportedURL(details.url);
-        if(resolved != null) {
-            if (!settings_cache?.features.has(`${resolved.client}:redirect`)) return; // automatic redirect on this url is disabled
-            // don't redirect if we got here from a link on threadclient or
-            // a link on reddit.com
+        return { redirectUrl: "https://thread.pfg.pw/#"+details.url };
+    }
 
-            if(details.originUrl === undefined) {
-                return; // navigating by manually entering the url
-            }
+    return;
+}
 
-            const origin_url = new URL(details.originUrl);
-            const origin_resolved = resolveThreadClientSupportedURL(details.originUrl);
-            if (origin_url.hostname === "thread.pfg.pw") {
-                // so if you click a raw! link on threadclient, it links out
-                return;
-            }
-            if (origin_resolved?.client === resolved.client) {
-                // so if you click a reddit link on reddit, it stays on reddit
-                // but if you click a hackernews link on reddit, it goes to threadclient
-                return;
-            }
+// this is kind of unnecessary. we can just register the listener once.
+// this makes it so if redirect isn't set, we don't run any of the onBeforeRequestListener logic at all
+// which saves firefox some time
+let existing_redirect_listener_origins = new Set();
+function updateOnBeforeRequestListener() {
+    const settings = settings_cache!;
 
-            // TODO: don't redirect if threadclient doesn't support the page
-            return { redirectUrl: "https://thread.pfg.pw/"+details.url };
+    const origins = new Set<string>();
+    for (const client of settings.permissions ?? []) {
+        if (settings.features.has(`${client}:redirect`)) {
+            const perms = per_client_permissions.get(client);
+            for (const origin of perms?.origins ?? []) origins.add(origin);
         }
+    }
 
-        return;
-    },
-    { urls: [...all_optional_origins] },
-    ["blocking"],
-);
+    console.log("updateOnBeforeRequestListener", {from: [...existing_redirect_listener_origins].sort().join(" "), to: [...origins].sort().join(" ")});
+    if ([...existing_redirect_listener_origins].sort().join(" ") === [...origins].sort().join(" ")) return; // no change. don't need to reregister listener.
+    console.log("-> update");
+    existing_redirect_listener_origins = origins;
+    browser.webRequest.onBeforeRequest.removeListener(onBeforeRequestListener);
+    browser.webRequest.onBeforeRequest.addListener(
+        onBeforeRequestListener,
+        { urls: [...origins] },
+        ["blocking"],
+    );
+}
 
 function allowDev(): boolean {
     // return localStorage.getItem("allow-dev") === "true";
@@ -152,6 +213,9 @@ async function updateSettings(): Promise<void> {
         features: features_set,
         permissions,
     };
+
+    updateOnBeforeRequestListener();
+    await updateContentScripts();
 }
 let updating = false;
 let update_again = false;
