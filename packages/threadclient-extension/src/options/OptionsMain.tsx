@@ -5,7 +5,6 @@ import { sendMessage } from "webext-bridge";
 import browser from "webextension-polyfill";
 import { ExtensionSettings } from "../shim";
 import { per_client_permissions } from "../all";
-// import browser from "webextension-polyfill";
 
 function Options(props: {current: ExtensionSettings, update: (settings: ExtensionSettings) => void}): JSX.Element {
     const hasFeature = (name: string) => props.current.features.has(name);
