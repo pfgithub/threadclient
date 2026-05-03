@@ -24,6 +24,7 @@ export async function getManifest(): Promise<Manifest.WebExtensionManifest> {
                 data_collection_permissions: {
                     required: ["none"]
                 },
+                update_url: "https://thread.pfg.pw/extension/firefox-update-manifest.json",
             },
         },
         options_ui: {
