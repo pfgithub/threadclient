@@ -6,6 +6,24 @@ import browser from "webextension-polyfill";
 import { ExtensionSettings } from "../shim";
 import { per_client_permissions } from "../all";
 
+/*
+
+TODO new layout: (showing default values)
+Sites (controls which sites redirect & dialogs are enabled for. seperate from permission)
+- [ ] Reddit
+- [ ] Hacker News
+Settings
+- [x] Ask to redirect
+- Redirect automatically: [ Never     v ]
+   - When I click a link
+   - Always
+Advanced
+- [ ] Fix reddit s-links (auto enables after you give permission for reddit)
+- [ ] Enable developer mode
+- Reset all settings
+
+*/
+
 function Options(props: { current: ExtensionSettings, update: (settings: ExtensionSettings) => void }): JSX.Element {
     const hasFeature = (name: string) => props.current.features.has(name);
     const hasPermission = (name: string) => props.current.permissions.has(name);
