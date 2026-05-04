@@ -34,5 +34,6 @@ export function main(client: string) {
     const unregister = showNotifications(shadow_dom, () => {
         unregister();
         root.remove();
+        sessionStorage.setItem("tc-closed", "true");
     }, client);
 }
