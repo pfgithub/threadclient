@@ -73,7 +73,11 @@ function onBeforeRequestListener(details: browser.WebRequest.OnBeforeRequestDeta
         if (!settings_cache?.features.has(`${resolved.client}:redirect`)) return;
 
         if(details.originUrl === undefined) {
-            return; // navigating by manually entering the url
+            if (settings_cache?.features.has(`${resolved.client}:reddit-no-origin`)) {
+                return { redirectUrl: "https://thread.pfg.pw/#"+details.url };
+            } else {
+                return; // navigating by manually entering the url
+            }
         }
 
         const origin_url = new URL(details.originUrl);

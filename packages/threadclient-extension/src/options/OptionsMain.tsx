@@ -77,6 +77,14 @@ function Options(props: { current: ExtensionSettings, update: (settings: Extensi
                                 theme="reddit"
                             />
                             <SettingRow
+                                title="Auto-Redirect when manually entering URL"
+                                description="Redirects even if you manually type reddit.com into the URL bar."
+                                disabled={!hasFeature("reddit:redirect")}
+                                checked={hasFeature("reddit:redirect-no-origin")}
+                                onChange={(val) => handleToggle("reddit", "reddit:redirect-no-origin", val)}
+                                theme="reddit"
+                            />
+                            <SettingRow
                                 title="Show Redirect Prompt"
                                 description="Show a prompt to navigate to ThreadClient while browsing Reddit."
                                 checked={!hasFeature("reddit:no-manual-redirect")}
@@ -121,6 +129,14 @@ function Options(props: { current: ExtensionSettings, update: (settings: Extensi
                                 description="Automatically open HackerNews links in ThreadClient."
                                 checked={hasFeature("hackernews:redirect")}
                                 onChange={(val) => handleToggle("hackernews", "hackernews:redirect", val)}
+                                theme="hn"
+                            />
+                            <SettingRow
+                                title="Auto-Redirect when manually entering URL"
+                                description="Redirects even if you manually type news.ycombinator.com into the URL bar."
+                                disabled={!hasFeature("hackernews:redirect")}
+                                checked={hasFeature("hackernews:redirect-no-origin")}
+                                onChange={(val) => handleToggle("hackernews", "hackernews:redirect-no-origin", val)}
                                 theme="hn"
                             />
                             <SettingRow
@@ -191,6 +207,7 @@ function Options(props: { current: ExtensionSettings, update: (settings: Extensi
 
 function SettingRow(props: {
     title: string,
+    disabled?: boolean,
     description?: string,
     checked: boolean,
     onChange: (checked: boolean) => void,
@@ -209,7 +226,7 @@ function SettingRow(props: {
         'bg-indigo-600 dark:bg-indigo-500';
 
     return (
-        <li class="flex items-center justify-between py-4 px-6 hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors group">
+        <li class={"flex items-center justify-between py-4 px-6 hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors group " + (props.disabled ? "opacity-50" : "")}>
             <div class="flex flex-col pr-8">
                 <span class="text-sm font-medium text-slate-900 dark:text-slate-200 group-hover:text-black dark:group-hover:text-white transition-colors">{props.title}</span>
                 <Show if={!!props.description}>
