@@ -78,14 +78,14 @@ function Options(props: { current: ExtensionSettings, update: (settings: Extensi
                             />
                             <SettingRow
                                 title="Show Redirect Prompt"
-                                description="Show a small prompt to navigate to ThreadClient while browsing Reddit."
+                                description="Show a prompt to navigate to ThreadClient while browsing Reddit."
                                 checked={!hasFeature("reddit:no-manual-redirect")}
                                 onChange={(val) => handleToggle("reddit", "reddit:no-manual-redirect", val, true)}
                                 theme="reddit"
                             />
                             <SettingRow
                                 title="Fix S-Links"
-                                description="Enables support for short links (reddit.com/s/...)."
+                                description="Enables support for short links (reddit.com/s/...) in ThreadClient."
                                 checked={!hasFeature("reddit:no-s-link")}
                                 onChange={(val) => handleToggle("reddit", "reddit:no-s-link", val, true)}
                                 theme="reddit"
@@ -142,7 +142,6 @@ function Options(props: { current: ExtensionSettings, update: (settings: Extensi
                     <ul class="divide-y divide-slate-100 dark:divide-slate-800/50">
                         <SettingRow
                             title="Developer Mode"
-                            description="Enable raw configuration view and advanced debug tools."
                             checked={hasFeature("dev")}
                             onChange={(val) => handleToggle(null, "dev", val)}
                             theme="default"
