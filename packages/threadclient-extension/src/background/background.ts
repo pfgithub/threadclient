@@ -25,9 +25,8 @@ async function updateContentScripts() {
     const settings = settings_cache!;
 
     const origins = new Set<string>();
-    origins.add("*://thread.pfg.pw/*");
-    for (const client of settings.permissions ?? []) {
-        if (!settings.features.has(`${client}:no-manual-redirect`)) {
+    if (!settings.features.has("redirect:no-ask")) {
+        for (const client of settings.permissions ?? []) {
             const perms = per_client_permissions.get(client);
             for (const origin of perms?.origins ?? []) origins.add(origin);
         }
@@ -39,7 +38,7 @@ async function updateContentScripts() {
     existing_content_script_origins = origins;
     activeContentScripts?.unregister();
     activeContentScripts = undefined;
-    activeContentScripts = await browser.contentScripts.register({
+    if (origins.size > 0) activeContentScripts = await browser.contentScripts.register({
         matches: [...origins],
         js: [{file: "/dist/contentScripts/index.global.js"}],
         runAt: "document_end",
@@ -70,29 +69,29 @@ function onBeforeRequestListener(details: browser.WebRequest.OnBeforeRequestDeta
 
     const resolved = resolveThreadClientSupportedURL(details.url);
     if(resolved != null) {
-        if (!settings_cache?.features.has(`${resolved.client}:redirect`)) return;
-
         if(details.originUrl === undefined) {
-            if (settings_cache?.features.has(`${resolved.client}:reddit-no-origin`)) {
-                return { redirectUrl: "https://thread.pfg.pw/#"+details.url };
-            } else {
+            if (settings_cache?.features.has(`redirect:no-type-url`)) {
                 return; // navigating by manually entering the url
+            } else {
+                return { redirectUrl: "https://thread.pfg.pw/#"+details.url };
             }
-        }
+        } else {
+            if (settings_cache?.features.has(`redirect:no-click-link`)) return; // navigating by clicking a link
 
-        const origin_url = new URL(details.originUrl);
-        if (origin_url.hostname === "thread.pfg.pw") {
-            // so if you click a raw! link on threadclient, it links out
-            return;
-        }
-        const origin_resolved = resolveThreadClientSupportedURL(details.originUrl);
-        if (origin_resolved?.client === resolved.client) {
-            // so if you click a reddit link on reddit, it stays on reddit
-            // but if you click a hackernews link on reddit, it goes to threadclient
-            return;
-        }
+            const origin_url = new URL(details.originUrl);
+            if (origin_url.hostname === "thread.pfg.pw") {
+                // so if you click a raw! link on threadclient, it links out
+                return;
+            }
+            const origin_resolved = resolveThreadClientSupportedURL(details.originUrl);
+            if (origin_resolved?.client === resolved.client) {
+                // so if you click a reddit link on reddit, it stays on reddit
+                // but if you click a hackernews link on reddit, it goes to threadclient
+                return;
+            }
 
-        return { redirectUrl: "https://thread.pfg.pw/#"+details.url };
+            return { redirectUrl: "https://thread.pfg.pw/#"+details.url };
+        }
     }
 
     return;
@@ -106,8 +105,8 @@ function updateOnBeforeRequestListener() {
     const settings = settings_cache!;
 
     const origins = new Set<string>();
-    for (const client of settings.permissions ?? []) {
-        if (settings.features.has(`${client}:redirect`)) {
+    if (!(settings.features.has(`redirect:no-type-url`) && settings.features.has(`redirect:no-click-link`))) {
+        for (const client of settings.permissions ?? []) {
             const perms = per_client_permissions.get(client);
             for (const origin of perms?.origins ?? []) origins.add(origin);
         }
@@ -257,15 +256,12 @@ onMessage("reset-settings", async (): Promise<ExtensionSettings> => {
 onMessage("get-settings", async (): Promise<ExtensionSettings> => {
     return await getSettings();
 });
-onMessage("set-feature", async (opts): Promise<ExtensionSettings> => {
+onMessage("set-features", async (opts): Promise<ExtensionSettings> => {
     const features_req = storage.local.get(["features"]);
     const features_value = await features_req;
     const features = new Set<string>(features_value["features"]?.split(",") ?? []);
-    if (opts.data.value) {
-        features.add(opts.data.name);
-    } else {
-        features.delete(opts.data.name);
-    }
+    for (const add of opts.data.set) features.add(add);
+    for (const remove of opts.data.unset) features.delete(remove);
     await storage.local.set({features: features.size === 0 ? undefined : [...features].join(",")});
     return await getSettings();
 });

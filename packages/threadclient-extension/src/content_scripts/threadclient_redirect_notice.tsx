@@ -80,7 +80,7 @@ export function showNotifications(
                         ref={el => {no_ask_again = el}} 
                         class="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-zinc-900 cursor-pointer" 
                     /> 
-                    Don't ask again for {client}
+                    Don't ask again
                 </label>
             </div>
 
@@ -89,7 +89,10 @@ export function showNotifications(
                     class="px-4 py-2 text-sm font-medium text-zinc-300 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-zinc-600 rounded-lg cursor-pointer"
                     on:click={() => {
                         if (no_ask_again?.checked) {
-                            sendMessage("set-feature", {name: `${client}:no-manual-redirect`, value: true}).catch(console.error);
+                            sendMessage("set-features", {
+                                set: ["redirect:no-ask"],
+                                unset: [],
+                            }).catch(console.error);
                         }
                         close();
                     }}
@@ -101,7 +104,11 @@ export function showNotifications(
                     href={"https://thread.pfg.pw/#" + currentURL()} 
                     on:click={() => {
                         if (no_ask_again?.checked) {
-                            sendMessage("set-feature", {name: `${client}:redirect`, value: true}).catch(console.error);
+                            // these should be one message todo
+                            sendMessage("set-features", {
+                                set: [],
+                                unset: ["redirect:no-click-link", "redirect:no-type-url"],
+                            }).catch(console.error);
                         }
                     }}
                 >

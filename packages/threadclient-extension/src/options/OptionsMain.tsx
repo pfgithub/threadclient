@@ -6,30 +6,12 @@ import browser from "webextension-polyfill";
 import { ExtensionSettings } from "../shim";
 import { per_client_permissions } from "../all";
 
-/*
-
-TODO new layout: (showing default values)
-Sites (controls which sites redirect & dialogs are enabled for. seperate from permission)
-- [ ] Reddit
-- [ ] Hacker News
-Settings
-- [x] Ask to redirect
-- Redirect automatically: [ Never     v ]
-   - When I click a link
-   - Always
-Advanced
-- [ ] Fix reddit s-links (auto enables after you give permission for reddit)
-- [ ] Enable developer mode
-- Reset all settings
-
-*/
-
 function Options(props: { current: ExtensionSettings, update: (settings: ExtensionSettings) => void }): JSX.Element {
     const hasFeature = (name: string) => props.current.features.has(name);
     const hasPermission = (name: string) => props.current.permissions.has(name);
 
     const setFeature = (name: string, value: boolean) => {
-        runTask(sendMessage("set-feature", { name, value }).then(props.update), { label: `update ${name}` });
+        runTask(sendMessage("set-features", {set: value ? [name] : [], unset: value ? [] : [name]}).then(props.update), { label: `update ${name}` });
     };
 
     const ensurePermission = async (client: string): Promise<void> => {
@@ -47,10 +29,10 @@ function Options(props: { current: ExtensionSettings, update: (settings: Extensi
         })(), { label: `grant permission ${client}` });
     };
 
-    const handleToggle = (client: string | null, feature: string, desired: boolean, inverted: boolean = false) => {
+    const handleToggle = (client: string | null, feature: string, desired: boolean) => {
         runTask((async () => {
             if (client) await ensurePermission(client);
-            setFeature(feature, inverted ? !desired : desired);
+            setFeature(feature, desired);
         })(), { label: `toggle ${feature}` });
     };
 
@@ -62,118 +44,66 @@ function Options(props: { current: ExtensionSettings, update: (settings: Extensi
     return (
         <div class="min-h-screen bg-slate-50 dark:bg-slate-950 py-12 px-4 sm:px-6 lg:px-8 font-sans text-slate-900 dark:text-slate-100 transition-colors duration-200">
             <div class="max-w-3xl mx-auto space-y-8">
-                {/* Header */}
-                <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">ThreadClient Extension</h1>
+                <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">ThreadClient Extension Settings</h1>
 
-                {/* Reddit Section */}
                 <section class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-all hover:shadow-md">
-                    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-orange-50/50 dark:bg-orange-500/10 flex items-center gap-3">
-                        <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Reddit <a href="https://www.reddit.com" class="text-slate-400 dark:text-slate-500 text-sm font-normal ml-1 hover:underline">reddit.com</a></h2>
+                    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 flex items-center gap-3">
+                        <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Redirect</h2>
                     </div>
-                    <Show 
-                        if={hasPermission("reddit")}
-                        fallback={
-                            <div class="px-6 py-8 flex flex-col items-center justify-center text-center bg-white dark:bg-slate-900">
-                                <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                                    ThreadClient Extension needs permission to access Reddit to enable these features.
-                                </p>
-                                <button
-                                    onClick={() => grantPermission("reddit")}
-                                    class="px-4 py-2 text-sm font-semibold text-white bg-orange-600 hover:bg-orange-700 rounded-lg shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
-                                >
-                                    Grant Permission
-                                </button>
-                            </div>
-                        }
-                    >
-                        <ul class="divide-y divide-slate-100 dark:divide-slate-800/50">
-                            <SettingRow
-                                title="Auto-Redirect to ThreadClient"
-                                description="Automatically open Reddit links in ThreadClient."
-                                checked={hasFeature("reddit:redirect")}
-                                onChange={(val) => handleToggle("reddit", "reddit:redirect", val)}
-                                theme="reddit"
-                            />
-                            <SettingRow
-                                title="Auto-Redirect when manually entering URL"
-                                description="Redirects even if you manually type reddit.com into the URL bar."
-                                disabled={!hasFeature("reddit:redirect")}
-                                checked={hasFeature("reddit:redirect-no-origin")}
-                                onChange={(val) => handleToggle("reddit", "reddit:redirect-no-origin", val)}
-                                theme="reddit"
-                            />
-                            <SettingRow
-                                title="Show Redirect Prompt"
-                                description="Show a prompt to navigate to ThreadClient while browsing Reddit."
-                                checked={!hasFeature("reddit:no-manual-redirect")}
-                                onChange={(val) => handleToggle("reddit", "reddit:no-manual-redirect", val, true)}
-                                theme="reddit"
-                            />
-                            <SettingRow
-                                title="Fix S-Links"
-                                description="Enables support for short links (reddit.com/s/...) in ThreadClient."
-                                checked={!hasFeature("reddit:no-s-link")}
-                                onChange={(val) => handleToggle("reddit", "reddit:no-s-link", val, true)}
-                                theme="reddit"
-                            />
-                        </ul>
-                    </Show>
+                    <ul class="divide-y divide-slate-100 dark:divide-slate-800/50">
+                        <SettingRow
+                            title="Reddit"
+                            checked={hasFeature("client:reddit")}
+                            onChange={(val) => handleToggle("reddit", "client:reddit", val)}
+                            theme="default"
+                        />
+                        <SettingRow
+                            title="Hacker News"
+                            checked={hasFeature("client:hackernews")}
+                            onChange={(val) => handleToggle("hackernews", "client:hackernews", val)}
+                            theme="default"
+                        />
+                    </ul>
                 </section>
 
-                {/* Hacker News Section */}
                 <section class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-all hover:shadow-md">
-                    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-amber-50/50 dark:bg-amber-500/10 flex items-center gap-3">
-                        <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Hacker News <a href="https://news.ycombinator.com" class="text-slate-400 dark:text-slate-500 text-sm font-normal ml-1 hover:underline">news.ycombinator.com</a></h2>
+                    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 flex items-center gap-3">
+                        <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Redirect Settings</h2>
                     </div>
-                    <Show 
-                        if={hasPermission("hackernews")}
-                        fallback={
-                            <div class="px-6 py-8 flex flex-col items-center justify-center text-center bg-white dark:bg-slate-900">
-                                <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                                    ThreadClient needs permission to access Hacker News to enable these features.
-                                </p>
-                                <button
-                                    onClick={() => grantPermission("hackernews")}
-                                    class="px-4 py-2 text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
-                                >
-                                    Grant Permission
-                                </button>
-                            </div>
-                        }
-                    >
-                        <ul class="divide-y divide-slate-100 dark:divide-slate-800/50">
-                            <SettingRow
-                                title="Auto-Redirect to ThreadClient"
-                                description="Automatically open HackerNews links in ThreadClient."
-                                checked={hasFeature("hackernews:redirect")}
-                                onChange={(val) => handleToggle("hackernews", "hackernews:redirect", val)}
-                                theme="hn"
-                            />
-                            <SettingRow
-                                title="Auto-Redirect when manually entering URL"
-                                description="Redirects even if you manually type news.ycombinator.com into the URL bar."
-                                disabled={!hasFeature("hackernews:redirect")}
-                                checked={hasFeature("hackernews:redirect-no-origin")}
-                                onChange={(val) => handleToggle("hackernews", "hackernews:redirect-no-origin", val)}
-                                theme="hn"
-                            />
-                            <SettingRow
-                                title="Show Redirect Prompt"
-                                description="Show a prompt to navigate to ThreadClient while browsing HackerNews."
-                                checked={!hasFeature("hackernews:no-manual-redirect")}
-                                onChange={(val) => handleToggle("hackernews", "hackernews:no-manual-redirect", val, true)}
-                                theme="hn"
-                            />
-                        </ul>
-                    </Show>
+                    <ul class="divide-y divide-slate-100 dark:divide-slate-800/50">
+                        <SettingRow
+                            title="Prompt to Redirect"
+                            description="When on an enabled site, ask if you want to redirect"
+                            checked={!hasFeature("redirect:no-ask")}
+                            onChange={(val) => handleToggle(null, "redirect:no-ask", !val)}
+                            theme="default"
+                        />
+                        <SettingRow
+                            title="Automatically Redirect when you click a link"
+                            checked={!hasFeature("redirect:no-click-link")}
+                            onChange={(val) => handleToggle(null, "redirect:no-click-link", !val)}
+                            theme="default"
+                        />
+                        <SettingRow
+                            title="Automatically Redirect when you type in the URL bar"
+                            checked={!hasFeature("redirect:no-type-url")}
+                            onChange={(val) => handleToggle(null, "redirect:no-type-url", !val)}
+                            theme="default"
+                        />
+                    </ul>
                 </section>
 
-                {/* Advanced Section */}
                 <section class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden transition-all hover:shadow-md">
                     <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50 flex items-center gap-3">
                         <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Advanced Settings</h2>
                     </div>
                     <ul class="divide-y divide-slate-100 dark:divide-slate-800/50">
+                        <SettingRow
+                            title="Fix Reddit S-Links"
+                            checked={hasPermission("reddit") && !hasFeature("client:reddit:no-s-link")}
+                            onChange={(val) => handleToggle("reddit", "client:reddit:no-s-link", !val)}
+                            theme="default"
+                        />
                         <SettingRow
                             title="Developer Mode"
                             checked={hasFeature("dev")}
@@ -181,8 +111,7 @@ function Options(props: { current: ExtensionSettings, update: (settings: Extensi
                             theme="default"
                         />
                     </ul>
-                    
-                    {/* Danger Zone */}
+
                     <div class="px-6 py-5 bg-red-50/50 dark:bg-red-900/10 border-t border-red-100 dark:border-red-900/30 flex items-center justify-between">
                         <div class="flex flex-col pr-4">
                             <span class="text-sm font-semibold text-red-900 dark:text-red-400">Reset All Settings</span>
@@ -192,12 +121,11 @@ function Options(props: { current: ExtensionSettings, update: (settings: Extensi
                             onClick={resetSettings}
                             class="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 shadow-sm shadow-red-500/20 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 whitespace-nowrap active:scale-95"
                         >
-                            Reset Defaults
+                            Reset to Defaults
                         </button>
                     </div>
                 </section>
 
-                {/* Developer Raw JSON */}
                 <Show if={hasFeature("dev")}>
                     <div class="bg-[#0d1117] border border-slate-700 rounded-2xl shadow-xl overflow-hidden mt-8">
                         <div class="px-4 py-2 border-b border-slate-800 bg-[#161b22] flex items-center gap-2">

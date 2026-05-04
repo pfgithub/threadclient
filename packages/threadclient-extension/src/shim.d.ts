@@ -8,7 +8,7 @@ declare module "webext-bridge" {
         // 'get-current-tab': ProtocolWithReturn<{ tabId: number }, { title?: string }>
         "get-settings": ProtocolWithReturn<{_?: never}, ExtensionSettings>;
         "reset-settings": ProtocolWithReturn<{_?: never}, ExtensionSettings>;
-        "set-feature": ProtocolWithReturn<{name: string, value: boolean}, ExtensionSettings>,
+        "set-features": ProtocolWithReturn<{set: string[], unset: string[]}, ExtensionSettings>,
         "open-settings": ProtocolWithReturn<{_?: never}, void>,
     }
 }
