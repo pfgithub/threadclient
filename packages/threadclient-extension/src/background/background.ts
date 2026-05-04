@@ -114,7 +114,7 @@ function updateOnBeforeRequestListener() {
     console.log("-> update");
     existing_redirect_listener_origins = origins;
     browser.webRequest.onBeforeRequest.removeListener(onBeforeRequestListener);
-    browser.webRequest.onBeforeRequest.addListener(
+    if (origins.size > 0) browser.webRequest.onBeforeRequest.addListener(
         onBeforeRequestListener,
         { urls: [...origins] },
         ["blocking"],
