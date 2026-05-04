@@ -27,8 +27,10 @@ async function updateContentScripts() {
     const origins = new Set<string>();
     if (!settings.features.has("redirect:no-ask")) {
         for (const client of settings.permissions ?? []) {
-            const perms = per_client_permissions.get(client);
-            for (const origin of perms?.origins ?? []) origins.add(origin);
+            if (settings.features.has(`client:${client}`)) {
+                const perms = per_client_permissions.get(client);
+                for (const origin of perms?.origins ?? []) origins.add(origin);
+            }
         }
     }
 
@@ -107,8 +109,10 @@ function updateOnBeforeRequestListener() {
     const origins = new Set<string>();
     if (!(settings.features.has(`redirect:no-type-url`) && settings.features.has(`redirect:no-click-link`))) {
         for (const client of settings.permissions ?? []) {
-            const perms = per_client_permissions.get(client);
-            for (const origin of perms?.origins ?? []) origins.add(origin);
+            if (settings.features.has(`client:${client}`)) {
+                const perms = per_client_permissions.get(client);
+                for (const origin of perms?.origins ?? []) origins.add(origin);
+            }
         }
     }
 
