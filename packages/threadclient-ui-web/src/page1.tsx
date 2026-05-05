@@ -41,6 +41,10 @@ function linkButton(
         ;
     }else if(link_type.kind === "mailto") {
         return el("span").attr({title: link_type.title});
+    }else if(link_type.kind === "none") {
+        return el("span");
+    }else if(link_type.kind === "button") {
+        return el("button");
     }else if(link_type.kind === "link") {
         const href = link_type.url;
         const settings = getSettings();

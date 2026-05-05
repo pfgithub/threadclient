@@ -27,7 +27,7 @@ function unlink(content: Generic.Page2Content, link: Generic.Link<Generic.Post>)
         parent: null,
         replies: null,
         client_id: "n/a",
-        url_deprecated: null,
+        url: null,
 
         kind: "post",
 

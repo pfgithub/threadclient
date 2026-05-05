@@ -288,7 +288,7 @@ export function runTask<T>(p: Promise<T>, desc: TaskContext): void {
     let timeout: number | undefined = setTimeout(() => {
         timeout = undefined;
         // TODO: show a notification with the task and a cancel button if a cancelation token is passed
-    }, 1000);
+    }, 1000) as unknown as number;
     p.then(() => {
         if (timeout != null) clearTimeout(timeout);
     }).catch(e => showError(e, desc));
