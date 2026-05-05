@@ -771,6 +771,7 @@ export const resolvers = {
             content: {
                 kind: "client",
                 navbar: getNavbar(null),
+                theme_color: "#FF4500",
             },
             internal_data: 0,
             parent: null,

@@ -159,7 +159,22 @@ export function renderPage2(content: Page2ContentManager, query: string): HideSh
                         // TODO: only when visible
                         document.title = res.title + " | " + "ThreadClient";
                     });
+                    const canvas = document.createElement("canvas");
+                    canvas.width = 64;
+                    canvas.height = 64;
+                    const ctx = canvas.getContext("2d")!;
+                    ctx.scale(64, 64);
                     createEffect(() => {
+                        const el = document.getElementById("tc-favicon") as HTMLMetaElement;
+                        ctx.clearRect(0, 0, 1, 1);
+                        ctx.fillStyle = res.favicon.color;
+                        ctx.fillRect(0, 0, 1, 1);
+                        ctx.font = "0.5px Verdana";
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        ctx.fillStyle = "#FFFFFF";
+                        ctx.fillText(res.favicon.text, 0.5, 0.5, 1);
+                        el.setAttribute("href", canvas.toDataURL());
                         // history.replaceState({}, "", res.url); // TODO: add this. we need to change the history management stuff though.
                     });
                     // TODO: set current url in url bar to the res url but only when visible

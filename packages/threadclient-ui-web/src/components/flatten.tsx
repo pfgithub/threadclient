@@ -14,6 +14,7 @@ export type FlatPage2 = {
     sidebar?: undefined | FlatItem[],
     title: string,
     url: string | null,
+    client: Generic.ClientPost | null,
 };
 
 export type CollapseButton = {

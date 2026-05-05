@@ -391,6 +391,7 @@ export type Post = {
 export type ClientPost = {
     kind: "client",
     navbar: Navbar,
+    theme_color?: string,
 };
 export type PostInfo = {
     creation_date?: number | undefined,

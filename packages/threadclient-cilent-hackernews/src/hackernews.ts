@@ -109,6 +109,7 @@ const resolvers = {
                     inboxes: [],
                     client_id,
                 },
+                theme_color: "#ff6600",
             },
             internal_data: 0,
             parent: null,

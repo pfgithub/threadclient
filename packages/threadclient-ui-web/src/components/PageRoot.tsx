@@ -19,14 +19,14 @@ const ExplorerView = lazy(() => import("../experiments/explorer_view/ExplorerVie
 type SpecialCallback = () => PageRes;
 const full_page_special_callbacks: Record<string, SpecialCallback> = {
     'LandingPage@-N-ry9qt3N1VTG0iKMHy': (): PageRes => {
-        return {url: null, title: "ThreadClient", children: <LandingPage />};
+        return {url: null, title: "ThreadClient", children: <LandingPage />, favicon: {text: "TC", color: "#000000"}};
     },
 };
 
 export type ClientPageProps = {
     pivot: Generic.Link<Generic.Post>,
 };
-type PageRes = {children: JSX.Element, url: string | null, title: string};
+type PageRes = {children: JSX.Element, url: string | null, title: string, favicon: {text: string, color: string}};
 export default function ClientPage(props: ClientPageProps & {query: string}): PageRes {
     const hprc = getWholePageRootContext();
 
@@ -54,6 +54,7 @@ export default function ClientPage(props: ClientPageProps & {query: string}): Pa
                 children: FullscreenSnapView({
                     get pivot() {return props.pivot},
                 }),
+                favicon: {text: "TC", color: "#000000"},
             }));
         }
         if(tc_view === "reader") {
@@ -63,6 +64,7 @@ export default function ClientPage(props: ClientPageProps & {query: string}): Pa
                 children: ReaderView({
                     get pivot() {return props.pivot},
                 }),
+                favicon: {text: "TC", color: "#000000"},
             }));
         }
         if(tc_view === "explorer") {
@@ -70,6 +72,7 @@ export default function ClientPage(props: ClientPageProps & {query: string}): Pa
                 url: null,
                 title: "pageres",
                 children: <ExplorerView pivot={props.pivot} />,
+                favicon: {text: "TC", color: "#000000"},
             }));
         }
 
@@ -92,6 +95,7 @@ export default function ClientPage(props: ClientPageProps & {query: string}): Pa
         get url() {return res().url},
         get title() {return res().title},
         get children() {return res()?.children ?? <div>error res().children is undefined?</div>},
+        get favicon() {return res().favicon},
     };
 }
 function ClientPageMain(props: ClientPageProps): PageRes {
@@ -191,7 +195,11 @@ function ClientPageMain(props: ClientPageProps): PageRes {
                 </div>
             </Show>
         </div>
-    </div>};
+    </div>, get favicon() {
+        const flat = flatres();
+        if (flat.client && flat.client.theme_color) return {text: "TC", color: flat.client.theme_color};
+        return {text: "TC", color: "#000000"};
+    }};
 }
 
 function stickySidebar(el: HTMLDivElement) {

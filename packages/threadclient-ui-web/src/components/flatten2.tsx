@@ -378,6 +378,7 @@ export function useFlatten(pivotLink: () => Generic.Link<Generic.Post>): Accesso
                 ],
                 title: "Err No Pivot",
                 url: null,
+                client: null,
             };
         }
     });
@@ -397,6 +398,7 @@ function useFlattenMain(pivot_link: Generic.Link<Generic.Post>, pivot: Generic.P
         view_sidebar: null | Generic.PostReplies,
         view_above_body: FlatTreeItem[],
         title: string,
+        client: Generic.ClientPost | null,
     } => {
         const pa = parentsArr();
         const pivotlink = pivot_link;
@@ -448,12 +450,14 @@ function useFlattenMain(pivot_link: Generic.Link<Generic.Post>, pivot: Generic.P
                 target.push(item);
             }
         }
+        const top_post = view_above_body[view_above_body.length - 1];
         return {
             view_parents: [...res].reverse(),
             view_header_in_sidebar,
             view_sidebar,
             view_above_body: [...view_above_body].reverse(),
             title: title.join(" | "),
+            client: top_post?.kind === "flat_post" && top_post.post.content.kind === "client" ? top_post.post.content : null,
         };
     });
 
@@ -587,6 +591,9 @@ function useFlattenMain(pivot_link: Generic.Link<Generic.Post>, pivot: Generic.P
         },
         get aboveBody() {
             return aboveBodyCh();
+        },
+        get client() {
+            return parentsFiltered().client;
         },
     };
 }
