@@ -2042,13 +2042,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@faker-js/faker@npm:^7.6.0":
-  version: 7.6.0
-  resolution: "@faker-js/faker@npm:7.6.0"
-  checksum: 10/9236ee7a7ab32fcd99fa8cbc046b65b0af4fe714b12e33a39d3e058bef77e53bb0f42fe3331ed578a6db581b22c31f12ed2ba587a4bdb58a9ba0bb5b19f99bc4
-  languageName: node
-  linkType: hard
-
 "@firebase/analytics-compat@npm:0.2.6":
   version: 0.2.6
   resolution: "@firebase/analytics-compat@npm:0.2.6"
@@ -16155,20 +16148,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"threadclient-client-faker@npm:^1.0.0, threadclient-client-faker@workspace:packages/threadclient-client-faker":
-  version: 0.0.0-use.local
-  resolution: "threadclient-client-faker@workspace:packages/threadclient-client-faker"
-  dependencies:
-    "@faker-js/faker": "npm:^7.6.0"
-    api-types-generic: "npm:^1.0.0"
-    eslint: "npm:^10.0.0"
-    eslint-config-tmeta: "npm:^1.0.0"
-    threadclient-client-base: "npm:^1.0.0"
-    tsconfig-tmeta: "npm:^1.0.0"
-    typescript: "npm:^5.9.3"
-  languageName: unknown
-  linkType: soft
-
 "threadclient-client-hackernews@npm:^1.0.0, threadclient-client-hackernews@workspace:packages/threadclient-cilent-hackernews":
   version: 0.0.0-use.local
   resolution: "threadclient-client-hackernews@workspace:packages/threadclient-cilent-hackernews"
@@ -16336,7 +16315,6 @@ __metadata:
     solid-headless: "npm:^0.10.12"
     solid-js: "npm:^1.9.11"
     threadclient-client-base: "npm:^1.0.0"
-    threadclient-client-faker: "npm:^1.0.0"
     threadclient-client-hackernews: "npm:^1.0.0"
     threadclient-client-mastodon: "npm:^1.0.0"
     threadclient-client-reddit: "npm:^1.0.0"
