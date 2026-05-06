@@ -449,6 +449,7 @@ export type RedditClientData = ObservableData<{
     items: [Stringified<BaseItem>, Reddit.Item],
     listings: [Stringified<SortedObjectID>, Reddit.Listing | ""],
     mores: [Stringified<BaseMore2>, Reddit.More],
+    moreresults: [Stringified<BaseMore2>, Reddit.T2[]],
     widgets: [Stringified<BaseSubreddit>, Reddit.ApiWidgets],
     widget: [Stringified<BaseWidget>, Reddit.Widget],
     subreddit_t5s: [Stringified<BaseSubreddit>, Reddit.T5], // we could use items but it expects a fullname, while we typically have a lowercasestring from a URL
@@ -1271,7 +1272,7 @@ export const resolvers = {
         } else if (base.kind === "subreddits") {
             sorted = {kind: "subreddits", srs: base.srs, sort: subredditsSortMethod(client, base.srs)};
         } else {
-            throw new Error("todo support base kind: " + stringify(base));
+            sorted = base;
         }
         const full = client.data.get("listings", stringify(sorted));
         if (full == null) return not_loaded_obj;
@@ -1398,7 +1399,7 @@ export const resolvers = {
         }
     },
 
-    loadmore_request(client, base: {base: BaseMore2, sort: Sortv | "infer", post_fullname: string}): Generic.Opaque<"loader"> {
+    loadmore_request(client, base: {base: BaseMore2, post_fullname: string}): Generic.Opaque<"loader"> {
         const full = client.data.get("mores", stringify(base.base));
         if (full == null || full.kind !== "more" || full.data.children.length === 0) throw new Error("loadmore issue");
         return opaque_loader.encode({
@@ -1839,8 +1840,8 @@ function handleMore(client: RedditClient, full: Reddit.More, sort: PostSort, pos
     // morechildren-based
     return {
         kind: "horizontal_loader",
-        key: client.getLink("replies", {kind: "item", item: {fullname: stringify<BaseMore2>(moreBase(full, sort))}}),
-        request: client.getLink("loadmore_request", {base: moreBase(full, sort), sort, post_fullname}), // the id of a 'more' is the id of its first child, so we need to differentiate
+        key: client.getLink("replies", {kind: "more", more: moreBase(full, sort)}),
+        request: client.getLink("loadmore_request", {base: moreBase(full, sort), post_fullname}), // the id of a 'more' is the id of its first child, so we need to differentiate
         load_count: full.data.count,
         client_id,
     };
@@ -2052,6 +2053,7 @@ type SortedObjectID =
     | {kind: "user", user: BaseUser, sort: UserSort}
     | {kind: "wikipage_revisions", page: BaseWikipage}
     | {kind: "subreddits", srs: BaseSubreddits, sort: SubredditsSort}
+    | {kind: "more", more: BaseMore2}
 ;
 type ObjectID =
     | {kind: "item", item: BaseItem}
@@ -2060,6 +2062,7 @@ type ObjectID =
     | {kind: "user", user: BaseUser}
     | {kind: "wikipage_revisions", page: BaseWikipage}
     | {kind: "subreddits", srs: BaseSubreddits}
+    | {kind: "more", more: BaseMore2}
 ;
 
 function addListing(client: RedditClient, parent: SortedObjectID | {kind: "none"}, listing: Reddit.Listing | "", allow_replies: true | {after_id: string}): void {
@@ -2228,11 +2231,8 @@ export async function loadPage2v2(
             }
         }
         addListing(client, {
-            kind: "item",
-            item: {
-                fullname: stringify(data.base), // it's kind of a hack to overload data.listings to contain morechildren. we should probably make a seperate data.morechildren instead.
-            },
-            sort: data.base.sort,
+            kind: "more",
+            more: data.base,
         }, {
             kind: "Listing",
             data: {
