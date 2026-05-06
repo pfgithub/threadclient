@@ -1832,7 +1832,6 @@ function handleMore(client: RedditClient, full: Reddit.More, sort: PostSort, pos
                 comment_fullname: full.data.parent_id,
                 subreddit,
             }),
-            load_count: full.data.count,
             client_id,
         };
     }
