@@ -246,7 +246,7 @@ export function RichtextParagraph(props: {paragraph: Generic.Richtext.Paragraph}
         //   - posts do not have px-4
         //   - bodies are responsible for applying px-4 themselves
         //   - all other richtext kinds apply px-4
-        table: (table) => <div><div class="overflow-x-auto max-w-full" style={{
+        table: (table) => <div><div class="overflow-x-auto w-0 min-w-full max-w-full" style={{
             '-webkit-overflow-scrolling': "touch",
         }}><table class="w-max">
             <thead><tr>
