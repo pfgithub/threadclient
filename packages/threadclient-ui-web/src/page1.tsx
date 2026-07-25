@@ -1558,7 +1558,8 @@ export function clientListing(
         }
     }
 
-    const [contentWarning, setContentWarning] = createSignal(content_warnings.length !== 0);
+    const settings = getSettings();
+    const [contentWarning, setContentWarning] = createSignal(settings.contentWarnings() === "show" && content_warnings.length !== 0);
     const thumbnail_evhl: [() => void] = [() => void 0];
     {
         if(listing.thumbnail) {

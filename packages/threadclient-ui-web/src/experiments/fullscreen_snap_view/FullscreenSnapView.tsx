@@ -17,7 +17,7 @@ import { ClientPostOpts } from "../../components/Post";
 import { getVideoSources, NativeVideoElement, VideoRef, VideoState } from "../../components/preview_video";
 import proxyURL from "../../components/proxy_url";
 import { per_post_context } from "../../util/contexts";
-import { getWholePageRootContext } from "../../util/utils_solid";
+import { getSettings, getWholePageRootContext } from "../../util/utils_solid";
 import { LinkButton, UserLink } from "../../components/links";
 import { actAuto, getCounterState } from "../../components/counter";
 import { addAction } from "../../components/action_tracker";
@@ -227,7 +227,7 @@ function FullscreenGallery(props: {
     </>);
 
     return <div class={"h-full w-full overflow-hidden "+(zoomed() ? "" : "overflow-x-scroll snap-x snap-mandatory")} ref={el => {
-        const rl = ratelimit(250, () => {    
+        const rl = ratelimit(250, () => {
             const current_scroll = el.scrollLeft + (el.offsetWidth / 2);
             const max_scroll = el.scrollWidth;
             const num_items = props.gallery.images.length;
@@ -236,19 +236,19 @@ function FullscreenGallery(props: {
             const scroll_idx = scroll_percent * num_items;
 
             setCurrentIndex(Math.max(0, Math.min(num_items - 1, scroll_idx |0)));
-    
+
             // todo: estimate it by taking:
             // - the total length
             // - divide by the number of items
             // - estimate the current index
-    
+
             // el.scrollLeft;
-    
+
             // const elements = document.elementsFromPoint(window.innerWidth / 2, window.innerHeight / 2);
             // const elem = elements.find(el => (el as Hasoursym)[oursym] === true) as Hasoursym | undefined;
             // setZoomed(elem ?? null);
         });
-    
+
         el.addEventListener("scroll", e => {
             if(e.target !== e.currentTarget) return;
             rl.now();
@@ -474,7 +474,7 @@ function FullscreenVideoPlayer(props: {
                 setState={setState}
                 videoRef={v => {
                     video_ref = v;
-                    
+
                     video_ref.video_el.addEventListener("click", e => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -519,8 +519,9 @@ function FullscreenPost(props: {
     content: Generic.PostContentPost,
     opts: ClientPostOpts,
 }): JSX.Element {
+    const settings = getSettings();
     const [contentWarning, setContentWarning] = createSignal(
-        !!(props.content.flair ?? []).find(flair => flair.content_warning),
+        settings.contentWarnings() === "show" && !!(props.content.flair ?? []).find(flair => flair.content_warning),
     );
     const zoomed = useContext(zoomed_provider)!;
     // alternatively:
