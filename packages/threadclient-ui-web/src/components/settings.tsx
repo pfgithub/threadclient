@@ -63,7 +63,7 @@ export function SettingPicker<T extends string>(props: {
             value={props.setting.override()}
             setValue={nv => props.setting.setOverride(nv)}
             choices={props.options.map(option => [
-                option, 
+                option,
                 <Show when={option}
                     fallback={
                         <>{props.name(undefined)} ({props.name(props.setting.base())})</>
@@ -80,7 +80,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
     const [showDevSettings, setShowDevSettings] = createSignal(false);
     const settings = getSettings();
 
-    return <main class="client-wrapper"><div class="display-comments-view">
+    return <main class="client-wrapper"><div class="display-comments-view handles-clicks bg-slate-300 dark:bg-zinc-900">
         <SettingsSection title="Color Scheme">
             <SettingPicker
                 setting={settings.colorScheme}

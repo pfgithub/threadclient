@@ -26,6 +26,7 @@ import { getPointsText, isModifiedEvent, unsafeLinkToSafeLink, watchCounterState
 import { vanillaToSolidBoundary } from "./util/interop_solid";
 import { DefaultErrorBoundary, getSettings } from "./util/utils_solid";
 import Page2ContentManager, { Page2SecretsManager } from "./util/Page2ContentManager";
+import { LinkButton } from "./components/links";
 
 function linkButton(
     client_id: string,
@@ -1946,6 +1947,13 @@ export function renderNavbar(
         renderInbox(client, navbar_inbox).defer(hsc).adto(navbar_area);
         txt(" ").adto(navbar_area);
     }
+
+    txt(" ").adto(navbar_area);
+    vanillaToSolidBoundary(el("span").adto(navbar_area), () => {
+        return <span>
+            <LinkButton style="action-button" action={{url: "raw!/settings", client_id: "", display: "overlay"}}>Settings</LinkButton>
+        </span>
+    });
 
     return hsc;
 }
