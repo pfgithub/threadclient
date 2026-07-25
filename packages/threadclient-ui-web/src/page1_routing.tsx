@@ -128,7 +128,9 @@ export function onNavigate(
         node.style.backgroundColor = "rgba(0, 0, 0, 0.6)";
         node.addEventListener("click", event => {
             if (!allowedToAcceptClick(event.target, event.currentTarget)) return;
+            // @ts-expect-error
             if (navigation.canGoBack) {
+                // @ts-expect-error
                 navigation.back();
             } else {
                 history.back();
