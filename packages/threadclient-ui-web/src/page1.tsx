@@ -2135,6 +2135,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
 
     const frame = el("div").adto(outer);
     frame.classList.add("client-main-frame");
+    frame.classList.add("bg-slate-300", "dark:bg-zinc-900", "handles-clicks");
 
     const loader_area = el("div").adto(frame);
     loader_area.classList.add("display-loading");
@@ -2455,6 +2456,7 @@ export function renderPath(pathraw: string, search: string): HideShowCleanup<HTM
 
             const frame = el("div").adto(outer);
             frame.classList.add("client-main-frame");
+            frame.classList.add("bg-slate-300", "dark:bg-zinc-900", "handles-clicks");
 
             const title = updateTitle(hsc, client.id);
             title.setTitle("Loading "+client.id+"…");

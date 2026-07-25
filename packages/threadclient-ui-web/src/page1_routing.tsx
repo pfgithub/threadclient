@@ -2,7 +2,7 @@ import type * as Generic from "api-types-generic";
 import { batch, createEffect, createSignal, onCleanup, untrack, JSX } from "solid-js";
 import { render } from "solid-js/web";
 import { UUID } from "tmeta-util";
-import { Debugtool, Show } from "tmeta-util-solid";
+import { allowedToAcceptClick, Debugtool, Show } from "tmeta-util-solid";
 import Page2v2 from "./components/Page2v2";
 import ClientPage from "./components/PageRoot";
 import ToggleButton from "./components/ToggleButton";
@@ -127,6 +127,7 @@ export function onNavigate(
         node.classList.add("fixed", "inset-0", "z-50", "overflow-y-auto");
         node.style.backgroundColor = "rgba(0, 0, 0, 0.6)";
         node.addEventListener("click", event => {
+            if (!allowedToAcceptClick(event.target, event.currentTarget)) return;
             if (navigation.canGoBack) {
                 navigation.back();
             } else {

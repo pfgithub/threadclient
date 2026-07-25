@@ -147,10 +147,7 @@ function ClientPageMain(props: ClientPageProps): PageRes {
         return view.data.url;
     }, get title() {
         return view.data.title;
-    }, children: <div class="flex flex-col gap-4 max-w-6xl mx-auto p-4 <sm:px-0 bg-slate-300 dark:bg-zinc-900" on:click={e => {
-        e.preventDefault();
-        e.stopPropagation();
-    }}>
+    }, children: <div class="flex flex-col gap-4 max-w-6xl mx-auto p-4 <sm:px-0 bg-slate-300 dark:bg-zinc-900 handles-clicks">
         <Show if={view.data.aboveBody.length !== 0}>
             <div>
                 <For each={view.data.aboveBody}>{item => (

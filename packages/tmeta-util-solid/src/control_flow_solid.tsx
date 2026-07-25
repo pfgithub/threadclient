@@ -57,10 +57,11 @@ export function Show<T>(props: {
 // }
 
 
-export function allowedToAcceptClick(target: Node, frame: Node): boolean {
+export function allowedToAcceptClick(target: EventTarget | null, frame: EventTarget | null): boolean {
     // don't click if any text is selected
     const selection = document.getSelection();
     if(selection?.isCollapsed === false) return false;
+    if (!(target instanceof Node)) return false;
     // don't accept click if any of the click target parent nodes look like they might be clickable
     let target_parent = target as Node | null;
     while(target_parent && target_parent !== frame) {
@@ -230,7 +231,7 @@ export function createTypesafeChildren<T>(): TypesafeChildren<T> {
             value: props,
             toString() {
                 throw new Error("TypesafeChild not allowed in DOM");
-                
+
                 // huh. we want this to behave differently if it's
                 // found using children() vs if it's found in insertElement
                 // - in children, it should return the object
