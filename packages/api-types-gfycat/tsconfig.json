@@ -1,9 +1,0 @@
-{
-    "extends": "tsconfig-tmeta",
-    "compilerOptions": {
-        "outDir": "./dist",
-    },
-    "include": [
-        "src/**/*",
-    ],
-}

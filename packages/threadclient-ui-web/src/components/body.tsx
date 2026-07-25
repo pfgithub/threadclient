@@ -1,11 +1,11 @@
 import type * as Generic from "api-types-generic";
 import { createEffect, createMemo, createResource, createSignal, For, JSX, lazy, onCleanup } from "solid-js";
 import { createStore, reconcile } from "solid-js/store";
-import { gfyLike2, previewLink } from "threadclient-preview";
+import { previewLink } from "threadclient-preview";
 import { createMergeMemo, Show, SwitchKind } from "tmeta-util-solid";
 import { switchKind } from "../../../tmeta-util/src/util";
 import { fetchClient } from "../clients";
-import { gfyLikeV1, imgurImage, link_styles_v, redditSuggestedEmbed, renderOembed, youtubeVideo, zoomableImage } from "../page1";
+import { imgurImage, link_styles_v, redditSuggestedEmbed, renderOembed, youtubeVideo, zoomableImage } from "../page1";
 import { navigate } from "../page1_routing";
 import { getTwitchClip, textToBody } from "../tc_helpers";
 import { SolidToVanillaBoundary } from "../util/interop_solid";
@@ -193,12 +193,6 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
             if(!item) return null;
             return <Body body={item} autoplay={false} />;
         }}</For>,
-        gfycatv1: gfycat => <SolidToVanillaBoundary getValue={hsc => {
-            const div = el("div");
-            gfyLikeV1(gfycat.host, gfycat.id, {autoplay: props.autoplay}).defer(hsc).adto(div);
-            return div;
-        }} />,
-        gfycatv2: gfycat => <Gfycat data={gfycat} />,
         imgur: imgur => <SolidToVanillaBoundary getValue={hsc => {
             const div = el("div");
             imgurImage(imgur.imgur_kind, imgur.imgur_id).defer(hsc).adto(div);
@@ -267,7 +261,7 @@ function BodyMayError(props: {body: Generic.Body, autoplay: boolean}): JSX.Eleme
                     /></label>
                     <button onclick={() => {
                         go();
-                    }} 
+                    }}
                         disabled={!acceptable()}
                         class={link_styles_v[acceptable() ? "pill-filled" : "pill-empty"]}
                     >Go →</button>
@@ -321,8 +315,6 @@ export function summarizeBody(body: Generic.Body): string {
         link: link => link.url,
         captioned_image: () => "[image]",
         video: () => "[video]",
-        gfycatv1: () => "[gif]",
-        gfycatv2: () => "[gif]",
         youtube: () => "[video]",
         imgur: () => "[images]",
         twitch_clip: () => "[video]",
@@ -339,55 +331,6 @@ export function summarizeBody(body: Generic.Body): string {
         mastodon_instance_selector: () => "[mastodon instance selector]",
         iframe_srcdoc: () => "[iframe srcdoc]",
     });
-}
-
-export function Gfycat(props: {data: {id: string, host: string}}): JSX.Element {
-    const [state, setState] = createSignal<{
-        kind: "loading",
-    } | {
-        kind: "loaded",
-        frame: Generic.Post,
-    } | {
-        kind: "error",
-        message: string,
-    }>({kind: "loading"});
-    const [retry, setRetry] = createSignal(Symbol());
-
-    createEffect(() => {
-        retry();
-
-        let running = true;
-        onCleanup(() => running = false);
-
-        const data = props.data;
-        gfyLike2(data.host, data.id).then(r => {
-            if(!running) return;
-            setState({kind: "loaded", frame: r});
-        }).catch(e => {
-            if(!running) return;
-            console.log("got error", e, (e as Error).stack);
-            setState({kind: "error", message: (e as Error).toString()});
-        });
-    });
-
-    return <CrosspostWrapper>
-        <SwitchKind item={state()}>{{
-            loading: () => <>loading...</>,
-            loaded: ({frame}) => <ClientContent content={frame.content} opts={{
-                client_id: frame.client_id,
-                frame: frame,
-                flat_frame: null,
-                id: null,
-            }} />,
-            error: e => <div>
-                <button onClick={() => {
-                    setState({kind: "loading"});
-                    setRetry(Symbol());
-                }}>Retry</button>
-                <span class="text-red-500">{e.message}</span>
-            </div>,
-        }}</SwitchKind>
-    </CrosspostWrapper>;
 }
 
 // TODO ↑that but for getting the thumbnail. An optional hint
@@ -442,7 +385,7 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
         if(target && target.aspect != null) {
             if(target.aspect > 1) {
                 const ph = bound.h;
-                bound.h = bound.w * (1 / target.aspect);                
+                bound.h = bound.w * (1 / target.aspect);
                 bound.y += (ph - bound.h) / 2;
             }else{
                 const pw = bound.w;
@@ -467,7 +410,7 @@ export function ImageGallery(props: {images: Generic.GalleryItem[]}): JSX.Elemen
     return <div ref={div}><SwitchKind item={state}>{{
         overview: () => (
             <For each={props.images}>{(image, i) => (
-                <button 
+                <button
                     class={classes(
                         "m-1 inline-block rounded-md bg-slate-300 dark:bg-zinc-900",
                     )}

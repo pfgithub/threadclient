@@ -254,7 +254,7 @@ export type PostReplies = {
 //     // I don't like this, this requires us to generate like 8 copies of each post if there are 8 sort methods
 //     // I'd rather this used a loader, when you click a tab it switches to an unfilled link and the description
 //     // for how to fill it is here
-//     // ok actually 
+//     // ok actually
 //     selected_tab: Link<string>,
 //     default_tab: Link<Post>,
 //     tabs: {
@@ -377,7 +377,7 @@ export type Post = {
 
     parent: null | PostParent, // TODO: change this to a Link<{load?: opaque, next: Post | null}>
     replies: null | PostReplies, // TODO: rename to 'children' and change this to a Link<HorizontalLoaded> which will contain any loaders.
-    
+
     url: Link<string> | null, // if a thing does not have a url, it cannot be the pivot
     client_id: string,
 
@@ -440,7 +440,7 @@ export type PostContentPost = {
 export type PostContent = ClientPost | {
     // consider:
     // - load the sidebar along with the OneLoader for the filled identity card
-    
+
     // [!] when rendered below the pivot, use a different renderer
     // * exception: when rendered as the id card in the sidebar, use the normal renderer
     // : logic to determine how to render this should go in flatten2.tsx
@@ -699,16 +699,6 @@ export type Body = BodyText | RichText | {
     w: number | null,
     h: number | null,
 } | Video | {
-    // TODO: REMOVE, replace with a small page2 client returning a post
-    kind: "gfycatv1",
-    id: string,
-    host: string,
-} | {
-    // TODO: REMOVE, replace with a small page2 client returning a post
-    kind: "gfycatv2",
-    id: string,
-    host: string,
-} | {
     // TODO: REMOVE, replace with an oembed card or something or delete entirely
     kind: "youtube",
     id: string,
@@ -837,7 +827,7 @@ export type Thread = {
 
     info?: Info | undefined,
     actions: Action[],
-    
+
     default_collapsed: boolean,
 
     flair?: Flair[] | undefined,
@@ -899,7 +889,7 @@ export type LoadMoreUnmounted = {
     load_more_unmounted: Opaque<"load_more_unmounted">,
     url: string,
     count?: number | undefined,
-    
+
     raw_value: unknown,
 };
 export type Profile = {
@@ -1133,7 +1123,7 @@ export declare namespace SubmitResult {
     };
 }
 
-export type DataEncodings = 
+export type DataEncodings =
     | "reply" | "act" | "report" | "send_report" | "fetch_removed_path" | "load_more"
     | "load_more_unmounted" | "login_url" | "flair_list" | "flair_emojis" | "deferred_inbox"
     | "loader" | "edit" | "submit" | "account" | "sort_group" | "sort_option"

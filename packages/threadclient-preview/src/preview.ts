@@ -1,5 +1,4 @@
 import * as Generic from "api-types-generic";
-import type Gfycat from "api-types-gfycat";
 import { getVredditSources } from "threadclient-preview-vreddit";
 
 function replaceExtension(path: string, ext: string): string {
@@ -70,27 +69,6 @@ export const preview_sources: {[key: string]: (args: {
         }
     }
     return next();
-}, 'gfycat': ({url, link, path, next}) => {
-    if(url
-        && (url.host === "gfycat.com" || url.host.endsWith(".gfycat.com"))
-        && url.pathname.split("/").length === 2
-    ) return {
-        kind: "gfycatv1",
-        id: url.pathname.replace("/", "").split("-")[0]!.split(".")[0]!.toLowerCase(),
-        host: "gfycat.com",
-    };
-    if(url
-        && (url.host === "\x72\x65\x64gifs.com" || url.host.endsWith(".\x72\x65\x64gifs.com"))
-        && url.pathname.split("/").length === 3 && url.pathname.startsWith("/watch/")
-    ) {
-        const gfylink = url.pathname.replace("/watch/", "").split("-")[0]!.split(".")[0]!.toLowerCase();
-        return {
-            kind: "gfycatv2",
-            id: gfylink,
-            host: "\x72\x65\x64gifs.com",
-        };
-    }
-    return next();
 }, 'youtube': ({url, link, path, next}) => {
     if(url && (
         url.host === "www.youtube.com"
@@ -110,7 +88,7 @@ export const preview_sources: {[key: string]: (args: {
         const splitv = url.pathname.split("/").filter(q => q);
         if(splitv.length === 1 && splitv[0] != null && splitv[0] !== "") {
             return {kind: "audio", url: "https://media.vocaroo.com/mp3/"+splitv[0]};
-        }        
+        }
     }
     return next();
 }, 'giphy': ({url, link, path, next}) => {
@@ -128,10 +106,10 @@ export const preview_sources: {[key: string]: (args: {
                     },
                 ],
             }, gifv: true};
-        }        
+        }
     }
     return next();
-}, 'imgur': ({url, link, path, next}) => {    
+}, 'imgur': ({url, link, path, next}) => {
     if(url && (url.host === "www.imgur.com" || url.host === "imgur.com" || url.host === "m.imgur.com")) {
         const splitv = url.pathname.split("/").filter(q => q);
         const galleryid = splitv[1]!;
@@ -183,7 +161,7 @@ export function previewLink(
     opts: {suggested_embed?: undefined | string},
 ): undefined | Generic.Body {
     let url_mut: URL | undefined;
-    try { 
+    try {
         url_mut = new URL(link);
     }catch(e) {
         // ignore
@@ -212,121 +190,4 @@ export function previewLink(
     };
 
     return execSource(0) ?? undefined;
-}
-
-// TODO rewrite gfylike1 to return a Promise<Generic.PostData> and put it here
-
-// TODO: somehow eliminate all the specialized things in Generic.Body (eg GfyLike) and make them just like "special"
-// that it recommends you use a preview.tsx to turn into a Generic.PostData
-
-// note make sure to put an error boundary
-export async function gfyLike2(
-    gfy_host: string,
-    gfy_link: string,
-): Promise<Generic.Post> {
-    const res = (
-        await fetch("https://api."+gfy_host+"/v2/gifs/"+gfy_link).then(r => r.json())
-    ) as Gfycat.V2.GfyResponse;
-    console.log("gfy response", res);
-
-    if('errorMessage' in res) {
-        throw new Error("Gfycat error: "+res.errorMessage+"; logged="+res.logged+"; reported="+res.reported);
-    }
-    if('message' in res) {
-        throw new Error("Gfycat error: "+res.message+"; logged="+res.logged+"; reported="+res.reported);
-    }
-
-    const {gif, user} = res;
-
-    const client_id = "https://www."+gfy_host;
-
-    const body: Generic.Body = {
-        kind: "video",
-        aspect: gif.width / gif.height,
-        gifv: false,
-        source: {
-            kind: "video",
-            sources: [
-                {url: gif.urls.hd, quality: "HD"},
-                {url: gif.urls.sd, quality: "SD"},
-            ],
-            // preview: [
-            //     {url: gif.urls.vthumbnail},
-            // ],
-            thumbnail: gif.urls.thumbnail,
-        },
-    };
-
-    return {
-        kind: "post",
-
-        parent: null,
-        replies: null,
-        // url: "https://www."+gfy_host+"/watch/"+gfy_link,
-        url: null,
-        client_id,
-
-        content: {
-            kind: "post",
-
-
-            title: null,
-            thumbnail: {kind: "image", url: gif.urls.thumbnail}, // backup gif.averageColor
-            flair: gif.tags.map((tag): Generic.Flair => ({
-                content_warning: false,
-                elems: [
-                    {kind: "text", text: tag, styles: {}},
-                ],
-            })),
-            info: {
-                creation_date: gif.createDate * 1000,
-            },
-            author: user ? {
-                name: user.name,
-                color_hash: user.username,
-                link: user.url,
-                client_id,
-                pfp: user.profileImageUrl != null ? {
-                    url: user.profileImageUrl,
-                } : undefined,
-            } : undefined,
-            body,
-            collapsible: {default_collapsed: false},
-            actions: {
-                vote: {
-                    kind: "counter",
-
-                    client_id,
-                    unique_id: "like_"+gfy_link,
-                    time: Date.now(),
-
-                    neutral_icon: "heart",
-
-                    special: undefined,
-
-                    increment: {
-                        icon: "heart",
-                        color: "pink",
-                        label: "Like",
-                        undo_label: "Unlike",
-                    },
-                    decrement: null,
-
-                    count_excl_you: gif.likes,
-                    you: undefined,
-
-                    actions: {error: "gfycat liking is not supported"},
-                },
-                other: [
-                    {
-                        kind: "link",
-                        text: gif.views + " Views",
-                        url: "https://www."+gfy_host+"/watch/"+gfy_link,
-                        client_id,
-                    }
-                ],
-            },
-        },
-        internal_data: res,
-    };
 }

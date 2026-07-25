@@ -12,7 +12,6 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "api-types-gfycat": "^1.0.0",
     "threadclient-preview-vreddit": "^1.0.0"
   },
   "scripts": {

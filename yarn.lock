@@ -4176,17 +4176,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"api-types-gfycat@npm:^1.0.0, api-types-gfycat@workspace:packages/api-types-gfycat":
-  version: 0.0.0-use.local
-  resolution: "api-types-gfycat@workspace:packages/api-types-gfycat"
-  dependencies:
-    eslint: "npm:^10.0.0"
-    eslint-config-tmeta: "npm:^1.0.0"
-    tsconfig-tmeta: "npm:^1.0.0"
-    typescript: "npm:^5.9.3"
-  languageName: unknown
-  linkType: soft
-
 "api-types-hackernews@workspace:packages/api-types-hackernews":
   version: 0.0.0-use.local
   resolution: "api-types-hackernews@workspace:packages/api-types-hackernews"
@@ -16253,7 +16242,6 @@ __metadata:
   resolution: "threadclient-preview@workspace:packages/threadclient-preview"
   dependencies:
     api-types-generic: "npm:^1.0.0"
-    api-types-gfycat: "npm:^1.0.0"
     eslint: "npm:^10.0.0"
     eslint-config-tmeta: "npm:^1.0.0"
     threadclient-preview-vreddit: "npm:^1.0.0"
@@ -16295,7 +16283,6 @@ __metadata:
     "@typescript-eslint/parser": "npm:^8.55.0"
     "@windicss/plugin-icons": "npm:^1.0.2"
     api-types-generic: "npm:^1.0.0"
-    api-types-gfycat: "npm:^1.0.0"
     api-types-mastodon: "npm:^1.0.0"
     api-types-oembed: "npm:^1.0.0"
     api-types-reddit: "npm:^1.0.0"

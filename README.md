@@ -12,7 +12,6 @@ Demo:
 - usernames are different colors to make it easier to notice repeat users
 - threadclient preview supports these better than reddit in some ways:
   - imgur albums
-  - gfycat gifs
   - twitch clips
 - threadclient displays braille images correctly even if the author of the post formatted them incorrectly
   (what you see on [old.reddit](https://i.imgur.com/7ZVrqUz.png), [new.reddit](https://i.imgur.com/gFT0dHG.png),

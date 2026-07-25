@@ -1,6 +1,5 @@
 import * as Generic from "api-types-generic";
 import { rt } from "api-types-generic";
-import type Gfycat from "api-types-gfycat";
 import type { OEmbed } from "api-types-oembed";
 import { createEffect, createMemo, createSignal, JSX, untrack } from "solid-js";
 import { render } from "solid-js/web";
@@ -98,83 +97,6 @@ export function menuButtonStyle(active: boolean): string {
     ].join(" ");
 }
 
-export function gfyLikeV1(
-    gfy_host: string,
-    gfy_link: string,
-    opts: {autoplay: boolean},
-): HideShowCleanup<Node> {
-    const resdiv = el("div");
-    const hsc = hideshow(resdiv);
-    
-    const loader = loadingSpinner().adto(resdiv);
-    
-    fetch("https://api."+gfy_host+"/v1/gfycats/"+gfy_link).then(r => r.json()).then((r: Gfycat.V1.GfyResponse) => {
-        console.log("gfylike response:", r);
-        loader.remove();
-        resdiv.adch(el("div").adch(elButton("code-button").atxt("code")
-            .onev("click", (e) => {e.stopPropagation(); console.log(r)})
-        ));
-        if('message' in r) {
-            el("div").clss("error").adto(resdiv).atxt("Error: "
-                + r.message,
-            );
-            return;
-        }
-        if('errorMessage' in r) {
-            el("div").clss("error").adto(resdiv).atxt("Error: "
-                + r.errorMessage
-            );
-            return;
-        }
-        const {gfyItem: gfy_item} = r;
-        if(gfy_item.title != null) resdiv.adch(el("div").atxt("Title: " + gfy_item.title));
-        if(gfy_item.description != null) resdiv.adch(el("div").atxt("Description: "+gfy_item.description));
-
-        const sources: {url: string, type?: undefined | string, quality: string}[] = [
-            ...gfy_item.mp4Url != null ? [{url: gfy_item.mp4Url, type: "video/mp4", quality: "Highest"}] : [],
-            ...gfy_item.webmUrl != null ? [{url: gfy_item.webmUrl, type: "video/webm", quality: "Highest"}] : [],
-            ...gfy_item.content_urls.webm ? [{url: gfy_item.content_urls.webm.url, quality: "Highest"}] : [],
-            ...gfy_item.content_urls.mp4 ? [
-                {url: gfy_item.content_urls.mp4.url, quality: "Highest"},
-                {url: gfy_item.content_urls.mp4.url.replace(".mp4", "-mobile.mp4"), quality: "Mobile"}, // hack
-            ] : [],
-            ...gfy_item.content_urls.mobile ? [{url: gfy_item.content_urls.mobile.url, quality: "Mobile"}] : [],
-            ...gfy_item.mobileUrl != null ? [{url: gfy_item.mobileUrl, quality: "Mobile"}] : [],
-        ];
-
-        const urls = gfy_item.content_urls;
-        const url = urls.max5mbGif ?? urls.max2mbGif ?? urls.max1mbGif;
-        renderBody({
-            kind: "video",
-            aspect: gfy_item.width / gfy_item.height,
-            gifv: false,
-            source:
-                sources.length > 0 ? {
-                    kind: "video",
-                    sources,
-                } :
-                url != null ? {
-                    kind: "img",
-                    url: url.url,
-                } : {
-                    kind: "img",
-                    url: (() => {
-                        console.log("Bad gfy image in", gfy_item);
-                        throw new Error("Bad gfy image");
-                    })(),
-                }
-            ,
-        }, {autoplay: opts.autoplay}).defer(hsc).adto(resdiv);
-    }).catch(er => {
-        const e = er as Error;
-        console.log(e);
-        if(loader.parentNode) loader.remove();
-        resdiv.adch(el("div").clss("error").atxt("Error loading gfycat : " + e.toString()));
-    });
-    
-    return hsc;
-}
-
 export function renderFlair(flairs: Generic.Flair[]): Node {
     const span = el("span");
     render(() => <Flair flairs={flairs} />, span);
@@ -193,7 +115,7 @@ export function timeAgo(start_ms: number): HideShowCleanup<HTMLSpanElement> {
 
 export function dynamicLoader<T>(loader: () => Promise<T>): () => Promise<T> {
     let load_state: undefined | (() => void)[] | {loaded: T};
-    return async (): Promise<T> => {       
+    return async (): Promise<T> => {
         if(!load_state) {
             load_state = [];
             let loadedv: T;
@@ -549,7 +471,7 @@ function renderReplyAction(
         hsc.on("show", () => {
             if(reply_container) reply_container.setParentVisible(true);
         });
-        
+
         const update = () => {
             if(reply_state === "none") {
                 if(reply_container) {
@@ -915,7 +837,7 @@ function renderCounterAction(
     onupdate(() => {
         const {text: pt_text, raw: pt_raw} = getPointsText(state);
         btxt.nodeValue = {
-            increment: action.increment.undo_label, 
+            increment: action.increment.undo_label,
             decrement: action.decrement?.undo_label ?? "ERR",
             none: action.increment.label
         }[state.your_vote ?? "none"];
@@ -1109,7 +1031,7 @@ export function renderMenu(menu: Generic.Menu): HideShowCleanup<HTMLElement> {
             const subitems = item.action.children;
 
             hsc.on("hide", () => {console.log("open menu was asked to be hidden"); open = false; update()});
-            
+
             const update = () => {
                 arrowv.nodeValue = open ? "▴" : "▾";
                 btnel.attr({'aria-expanded': open ? "true" : "false"});
@@ -1151,7 +1073,7 @@ export function renderMenu(menu: Generic.Menu): HideShowCleanup<HTMLElement> {
             .adto(itcontainer).onev("click", e => {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 open =! open;
                 update();
             });
@@ -1272,7 +1194,7 @@ function widgetRender(
     txt(widget.title).adto(el("div").adto(outer_el).clss("widget-header font-bold text-base mb-2 text-gray-500"));
 
     const frame = el("div").clss("widget-content").adto(outer_el);
-    
+
     if(widget.actions_top) {
         const actionstop = el("div").clss("widget-actions-top").adto(frame);
         for(const action of widget.actions_top) {
@@ -1367,7 +1289,7 @@ function widgetRender(
     );
 
     return hsc;
-} 
+}
 
 type ClientContentOpts = {
     clickable: boolean,
@@ -1378,7 +1300,7 @@ export function clientContent(
     opts: ClientContentOpts,
 ): HideShowCleanup<HTMLElement> {
     // console.log(listing);
-    
+
     const frame = clientListingWrapperNode();
     const hsc = hideshow(frame);
 
@@ -1402,7 +1324,7 @@ export function clientContent(
         assertNever(listing);
     }catch(e) {
         hsc.cleanup();
-        console.log("Got error", e); 
+        console.log("Got error", e);
         frame.innerHTML = "";
         frame.adch(el("pre").adch(el("code").atxt(
             (e as Error).toString() + "\n\n" + ((e as Error).stack ?? "*no stack*")
@@ -1673,7 +1595,7 @@ export function clientListing(
             renderBody(body, {...bodyopts}).defer(body_hsc).adto(body_container);
             return body_hsc;
         };
-        
+
         const isEmpty = (body: Generic.Body): boolean => {
             if(body.kind === "none") return true;
             if(body.kind === "array") {
@@ -2048,7 +1970,7 @@ function renderClientPage(
     // and might in the future have functions and stuff
     //
     // How to make this change:
-    // make client.getThread return an Opaque<ThreadData> that you pass back to client to get the listing 
+    // make client.getThread return an Opaque<ThreadData> that you pass back to client to get the listing
     //
     // const saveofflinebtn = elButton("action-button").atxt("Save Offline").adto(navbar_area).onev("click", () => {
     //     // save listing in indexed db
@@ -2090,7 +2012,7 @@ function renderClientPage(
 
         const listing_area = el("div").adto(content_area);
         const addChildren = (children: Generic.UnmountedNode[]) => {
-            for(const child of children) addChild(child);   
+            for(const child of children) addChild(child);
         };
         const addChild = (child: Generic.UnmountedNode) => {
             // TODO show parent nodes and stuff
@@ -2229,7 +2151,7 @@ function clientMain(client: ThreadClient, current_path: string): HideShowCleanup
             const tokens = Page2SecretsManager.instance().getTokens(client.id);
             const purl_res = await client.pageFromURL(current_path, tokens);
             Page2SecretsManager.instance().updateTokens(client.id, tokens, purl_res.tokens);
-            
+
             const contentManager = new Page2ContentManager(client, purl_res.pivot);
             contentManager.invalidate(purl_res.dirty);
             const split = splitPathPage1Ver(current_path);
@@ -2367,7 +2289,7 @@ export function hideshow<T>(a_any?: T): HideShowCleanup<T> {
 
         if(derived_visibility !== prev_derived_visibility) {
             prev_derived_visibility = derived_visibility;
-            
+
             if(derived_visibility) emit("show");
             else emit("hide");
 
@@ -2440,7 +2362,7 @@ function fetchClientThen(
     }
 
     return fetchPromiseThen(fetchClient(client_id), client => {
-        if(!client){ 
+        if(!client){
             return fullscreenError("404. Client "+client_id+" not found.");
         }
         return cb(client);
@@ -2455,7 +2377,7 @@ export function fetchPromiseThen<T>(
     const hsc = hideshow(wrapper);
     const loader_container = el("div").adto(wrapper);
     el("span").atxt("Fetching client…").adto(loader_container);
-    
+
     promise.then(resv => {
         cb(resv).defer(hsc).adto(wrapper);
         loader_container.remove();
@@ -2594,16 +2516,16 @@ export function renderPath(pathraw: string, search: string): HideShowCleanup<HTM
     }
     if(path0 === "@nuit") {
         // const [p1, ...p2] = path;
-    
+
         return fetchPromiseThen(import("./experiments/nuit/Nuit"), (term) => {
             const res = el("div");
             const hsc = hideshow(res);
             const title = updateTitle(hsc, "inui");
             title.setTitle(path0);
-    
+
             const [shouldReload, setReload] = createSignal(undefined, {equals: () => false});
             () => setReload;
-    
+
             vanillaToSolidBoundary(res, () => <>
                 <DefaultErrorBoundary data={""}>
                     <>{createMemo(() => {
