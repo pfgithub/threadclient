@@ -210,7 +210,7 @@ export function redditSuggestedEmbed(suggested_embed: string): HideShowCleanup<N
             : {srcdoc: suggested_embed}
         ;
 
-        const parent_node = el("div").clss("resizable-iframe");
+        const parent_node = el("div").clss("resizable-iframe").styl({height: "80vh"});
         let iframe: HTMLIFrameElement | undefined;
         const initFrame = () => {
             if(!iframe) iframe = el("iframe").attr(iframe_attrs).adto(parent_node);
