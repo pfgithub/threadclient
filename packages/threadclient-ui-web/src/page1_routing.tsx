@@ -31,14 +31,19 @@ function GlobalPageRootViewer(): JSX.Element {
 export type NavigationEntryNode = {
     removeSelf: () => void, hide: () => void, show: () => void,
 };
-export type NavigationEntry = {url: string, node: NavigationEntryNode};
+export type NavigationEntry = {
+    url: string,
+    node: NavigationEntryNode,
+    overlayParent?: UUID,
+};
 
 export type HistoryState = {key: UUID};
 
-export function navigate({path, page, mode}: {
+export function navigate({path, page, mode, display}: {
     path: string,
     page?: undefined | Page2ContentManager,
     mode?: undefined | "navigate" | "replace",
+    display?: undefined | "overlay",
 }): void {
     if(path.startsWith("/")) path = path.replace("/", "#") || "#/";
     if(path.startsWith("##")) {
@@ -59,14 +64,19 @@ export function navigate({path, page, mode}: {
         history.pushState(hstate, "", path);
     }
     // TODO: work differently for replacestate
-    onNavigate(hstate.key, location, page);
+    onNavigate(hstate.key, location, page, display);
 }
 
 
 export type URLLike = {search: string, pathname: string, hash: string};
 
 
-export function onNavigate(to_key: UUID, url_in: URLLike, page: undefined | Page2ContentManager): void {
+export function onNavigate(
+    to_key: UUID,
+    url_in: URLLike,
+    page: undefined | Page2ContentManager,
+    display?: undefined | "overlay",
+): void {
     const url = url_in.pathname === "/" && url_in.search === "" && url_in.hash.length > 2 ? (() => {
         try {
             return new URL("https://thread.pfg.pw/"+url_in.hash.substring(1));
@@ -89,8 +99,7 @@ export function onNavigate(to_key: UUID, url_in: URLLike, page: undefined | Page
 
     const historyitem = nav_history_map.get(to_key);
     if(historyitem) {
-        // show the current history
-        historyitem.node.show();
+        showHistoryEntry(to_key);
         return; // done
     } else {
         // remove
@@ -114,6 +123,19 @@ export function onNavigate(to_key: UUID, url_in: URLLike, page: undefined | Page
         node = renderPath(url.pathname, url.search).defer(hsc).adto(rootel);
     }
 
+    if(display === "overlay") {
+        node.classList.add("fixed", "inset-0", "z-50", "overflow-y-auto");
+        node.style.backgroundColor = "rgba(0, 0, 0, 0.6)";
+        node.addEventListener("click", event => {
+            if(event.target !== node) return;
+            const browserNavigation = (window as unknown as {
+                navigation?: {back: () => void},
+            }).navigation;
+            if(browserNavigation) browserNavigation.back();
+            else history.back();
+        });
+    }
+
     hsc.on("cleanup", () => node.remove());
     hsc.on("hide", () => node.style.display = "none");
     hsc.on("show", () => node.style.display = "");
@@ -124,7 +146,22 @@ export function onNavigate(to_key: UUID, url_in: URLLike, page: undefined | Page
         show: () => hsc.setVisible(true),
     };
     
-    nav_history_map.set(to_key, {node: naventry, url: thisurl});
+    nav_history_map.set(to_key, {
+        node: naventry,
+        url: thisurl,
+        overlayParent: display === "overlay" ? prev_key : undefined,
+    });
+    showHistoryEntry(to_key);
+}
+
+function showHistoryEntry(key: UUID, seen = new Set<UUID>()): void {
+    if(seen.has(key)) return;
+    seen.add(key);
+
+    const entry = nav_history_map.get(key);
+    if(!entry) return;
+    if(entry.overlayParent) showHistoryEntry(entry.overlayParent, seen);
+    entry.node.show();
 }
 
 export function renderPage2(content: Page2ContentManager, query: string): HideShowCleanup<HTMLDivElement> {

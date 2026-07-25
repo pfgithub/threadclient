@@ -587,7 +587,11 @@ function FullscreenPost(props: {
         </>;}}</Show>
         <Show when={props.opts.frame?.url}>{post_url => (
             <ReadLink link={post_url}>{post_url_value => (
-                <Clickable class="block w-full" action={{url: post_url_value, client_id: props.opts.client_id}}>
+                <Clickable class="block w-full" action={{
+                    url: post_url_value,
+                    client_id: props.opts.client_id,
+                    display: "overlay",
+                }}>
                     <SidebarButton
                         icon="comments"
                         label="Comments"

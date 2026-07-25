@@ -10,6 +10,7 @@ export type ClickAction = {
     url: string,
     client_id: string, // TODO get rid of this. it should be the client's responsability to include client_id in its links.
     mode?: undefined | "navigate" | "replace",
+    display?: undefined | "overlay",
     page?: undefined | (() => (Page2ContentManager | undefined)),
     onClick?: undefined | JSX.EventHandler<HTMLElement, MouseEvent>,
 } | JSX.EventHandler<HTMLElement, MouseEvent> | "TODO";
@@ -56,7 +57,12 @@ export default function Clickable(props: {
             }
             const l_link = link.kind === "link" ? link : null;
             if(l_link == null) return alert("E_LINK_HREF_EXPECT_NAVIGATE");
-            navigate({path: l_link.url, page: props.action.page?.(), mode: props.action.mode});
+            navigate({
+                path: l_link.url,
+                page: props.action.page?.(),
+                mode: props.action.mode,
+                display: props.action.display,
+            });
         }
     };
     return <SwitchKind item={linkValue()}>{{
