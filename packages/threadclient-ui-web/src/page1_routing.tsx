@@ -127,25 +127,25 @@ export function onNavigate(
         node.classList.add("fixed", "inset-0", "z-50", "overflow-y-auto");
         node.style.backgroundColor = "rgba(0, 0, 0, 0.6)";
         node.addEventListener("click", event => {
-            if(event.target !== node) return;
-            const browserNavigation = (window as unknown as {
-                navigation?: {back: () => void},
-            }).navigation;
-            if(browserNavigation) browserNavigation.back();
-            else history.back();
+            if (navigation.canGoBack) {
+                navigation.back();
+            } else {
+                history.back();
+            }
         });
+        // TODO: also handle escape key press
     }
 
     hsc.on("cleanup", () => node.remove());
     hsc.on("hide", () => node.style.display = "none");
     hsc.on("show", () => node.style.display = "");
-    
+
     const naventry: NavigationEntryNode = {
         removeSelf: () => hsc.cleanup(),
         hide: () => hsc.setVisible(false),
         show: () => hsc.setVisible(true),
     };
-    
+
     nav_history_map.set(to_key, {
         node: naventry,
         url: thisurl,
