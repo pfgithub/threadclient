@@ -237,7 +237,7 @@ export function NativeVideoElement(props: {
             };
             if(video_el.playbackRate !== 0) s.playback_rate = video_el.playbackRate;
         }));
-        
+
         if(video_el.error) props.setState("error_overlay", video_el.error.message);
         else if(video_el.networkState === video_el.NETWORK_NO_SOURCE) {
             props.setState("error_overlay", "Video could not be loaded.");
@@ -436,7 +436,7 @@ function PreviewRealVideo(props: {
         if(compareTime(lastMouseEvent() + 1000)()) return false;
         return true;
     });
- 
+
     // custom controls todo:
     // [ ] scrubbing
     // [ ] hover the scrubber for that preview bar
@@ -725,7 +725,7 @@ function PreviewRealVideo(props: {
                 </div>
             </div>
         </div>
-        <div class="flex">
+        <div class="flex flex-wrap">
             <For each={[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0]}>{speed => (
                 <button
                     class={link_styles_v["outlined-button"]}
