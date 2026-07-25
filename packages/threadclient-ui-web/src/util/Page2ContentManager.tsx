@@ -18,7 +18,7 @@ export class Page2SecretsManager {
         // ie if the active account changed between when we sent the request and when we got the response
         const store = this.getTokens(client);
         if (to.app != null) store.app = to.app;
-        if (to.active_account != null) store.active_account = to.active_account; 
+        if (to.active_account != null) store.active_account = to.active_account;
         if (to.active_account_name != null) store.active_account_name = to.active_account_name;
     }
     getTokens(client: string): Generic.Tokens {
@@ -41,10 +41,10 @@ export default class Page2ContentManager {
     #signals: Map<Generic.Link<unknown>, Signal<Generic.ReadLinkResult<unknown> | null>>;
     #load_states: Map<Generic.Link<Generic.Opaque<"loader">>, Signal<LoadState>>;
     #sort_states: Map<Generic.Link<Generic.SortGroup>, Signal<SortState>>;
-    #backing: ThreadClient; // TODO: multiple backing for multiclient (we might need ids to have a client on them?)
+    #backing?: ThreadClient; // TODO: multiple backing for multiclient (we might need ids to have a client on them?)
     pivot: Generic.Link<Generic.Post>;
 
-    constructor(client: ThreadClient, pivot: Generic.Link<Generic.Post>) {
+    constructor(client: ThreadClient | undefined, pivot: Generic.Link<Generic.Post>) {
         this.#signals = new Map();
         this.#load_states = new Map();
         this.#sort_states = new Map();
@@ -59,6 +59,7 @@ export default class Page2ContentManager {
         setState({kind: "load"});
         (async () => {
             const gv = untrack(() => this.view2(group).group);
+            if (!this.#backing) throw new Error("no backing?");
             const tokens = Page2SecretsManager.instance().getTokens(this.#backing.id);
             const resp = await this.#backing.sort(gv, option, tokens);
             Page2SecretsManager.instance().updateTokens(this.#backing.id, tokens, resp.tokens);
@@ -91,6 +92,7 @@ export default class Page2ContentManager {
         setState({kind: "progress"});
         (async () => {
             const request = untrack(() => this.view2(loader.request));
+            if (!this.#backing) throw new Error("no backing?");
             const tokens = Page2SecretsManager.instance().getTokens(this.#backing.id);
             const resp = await this.#backing.loaderLoad(request, tokens);
             Page2SecretsManager.instance().updateTokens(this.#backing.id, tokens, resp.tokens);
@@ -121,6 +123,7 @@ export default class Page2ContentManager {
             for (const link of dirty) {
                 if (this.#signals.has(link)) {
                     const [, setValue] = this.#signals.get(link)!;
+                    if (!this.#backing) throw new Error("no backing?");
                     setValue(this.#backing.resolveLinkOld(link));
                 }
             }
@@ -140,6 +143,7 @@ export default class Page2ContentManager {
     #getSignal<T>(link: Generic.Link<T>): Signal<Generic.ReadLinkResult<T> | null> {
         const existsver = this.#signals.get(link);
         if(existsver != null) return existsver as Signal<Generic.ReadLinkResult<T> | null>;
+        if (!this.#backing) throw new Error("no backing?");
         const newver = createSignal<Generic.ReadLinkResult<T> | null>(this.#backing.resolveLinkOld(link));
         this.#signals.set(link, newver as Signal<Generic.ReadLinkResult<unknown> | null>);
         return newver;
@@ -147,6 +151,7 @@ export default class Page2ContentManager {
 
     /** for navigation */
     dupe(pivot: Generic.Link<Generic.Post>): Page2ContentManager {
+        if (!this.#backing) throw new Error("no backing?");
         const {client, dirty} = this.#backing.dupe();
         const res = new Page2ContentManager(client, pivot);
         res.invalidate(dirty);

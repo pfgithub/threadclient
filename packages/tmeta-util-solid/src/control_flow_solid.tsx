@@ -195,7 +195,7 @@ function isTypesafeChildrenValue<T>(tsch: TypesafeChildren<T>, valu: unknown): v
     return (valu as {[key: string]: unknown})["key"] === tsch.sym;
 }
 function useTypesafeChildren<T>(
-    rawChildrenAccessor: Accessor<JSX.Element>, value: (v: unknown) => T,
+    rawChildrenAccessor: Accessor<JSX.Element>, value: (v: unknown) => T, filter: (v: unknown) => boolean,
 ): Accessor<T[]> {
     const children = useChildren(rawChildrenAccessor);
     return createMemo((): T[] => {
@@ -203,7 +203,7 @@ function useTypesafeChildren<T>(
         if(!Array.isArray(cv)) {
             cv = [cv];
         }
-        return cv.filter(itm => itm).map(value);
+        return cv.filter(itm => itm && filter(itm)).map(value);
     });
 }
 
@@ -249,6 +249,11 @@ export function createTypesafeChildren<T>(): TypesafeChildren<T> {
                     throw new Error("bad tsch child");
                 }
                 return v.value;
+            }, v => {
+                if (typeof v === "object" && v !== null && ('name' in v) && (typeof v.name === "string") && v.name.startsWith("[solid-refresh]")) {
+                    return false;
+                }
+                return true;
             });
         },
         sym: sym_key,

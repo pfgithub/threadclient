@@ -95,8 +95,11 @@ export type Motion = "full" | "reduce";
 export type AnimationDevMode = "none" | "shift_slow";
 export type LinkTarget = "new_tab" | "same_tab";
 export type Changelog = "show" | "hide";
+export type ContentWarnings = "show" | "hide";
+
 export type Settings = {
     colorScheme: ComputeProperty<ColorScheme>,
+    contentWarnings: ComputeProperty<ContentWarnings>,
     authorPfp: ComputeProperty<AuthorPfp>,
     updateNotifications: ComputeProperty<UpdateNotifications>,
     customVideoControls: ComputeProperty<CustomVideoControls>,
@@ -185,6 +188,7 @@ const global_settings = createRoot((): Settings => {
         colorScheme: localStorageProperty("color-scheme",
             signalFromMatchMedia("(prefers-color-scheme: dark)", "dark", "light"),
         {}),
+        contentWarnings: localStorageProperty("content-warnings", () => "show", {}),
         authorPfp: localStorageProperty("pfp-cfg", () => "on", {}),
         updateNotifications: localStorageProperty("update_notices", () => "on", {}),
         customVideoControls: localStorageProperty("custom_video_controls", () => "browser", {}),

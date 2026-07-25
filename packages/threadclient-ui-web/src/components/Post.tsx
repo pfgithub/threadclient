@@ -82,6 +82,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
 
     // it would probably be better to have two seperate post renderes, one for collapsed and one for expanded,
     // and switch between the two
+    const settings = getSettings();
 
     const collapseInfo = createMemo(
         () => postContentCollapseInfo(props.content, props.opts.flat_frame ?? {
@@ -118,7 +119,7 @@ export default function ClientPost(props: ClientPostProps): JSX.Element {
     );
 
     const [contentWarning, setContentWarning] = createSignal(
-        !!(props.content.flair ?? []).find(flair => flair.content_warning),
+        settings.contentWarnings() === "show" ? !!(props.content.flair ?? []).find(flair => flair.content_warning) : false,
     );
     // next: fix fix focus
 
@@ -334,11 +335,15 @@ export function PostTopBar(props: ClientPostProps & {
                 if(!allowedToAcceptClick(e.target, e.currentTarget)) return;
                 e.stopPropagation();
 
-                if (!props.opts.frame?.url || !hprc) return alert("post has no url");
+                let target_url: string | undefined;
+                if (!props.opts.frame?.url || !hprc) {
+                } else {
+                    target_url = "/"+props.opts.client_id+hprc.content.view2(props.opts.frame.url);
+                }
                 // support ctrl click
-                const target_url = "/"+props.opts.client_id+hprc.content.view2(props.opts.frame.url);
                 if(e.ctrlKey || e.metaKey || e.altKey) {
                     if(props.opts.frame?.url == null) return;
+                    if (!target_url) return alert("post has no url");
                     window.open(target_url);
                 }else{
                     if(props.collapseInfo.user_controllable && !props.visible) {
@@ -346,6 +351,7 @@ export function PostTopBar(props: ClientPostProps & {
                         return;
                     }
                     if(props.opts.frame?.url == null) return;
+                    if (!target_url) return alert("post has no url");
                     navigate({
                         path: target_url,
                         page: props.getPage(),

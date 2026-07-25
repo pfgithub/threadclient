@@ -5,13 +5,14 @@ import { Show } from "tmeta-util-solid";
 import { variables } from "virtual:_variables";
 import { link_styles_v } from "../page1";
 import { availableForOfflineUse, updateAvailable, updateSW } from "../router";
-import { ComputeProperty, getSettings } from "../util/utils_solid";
+import { ComputeProperty, getSettings, PageRootProvider } from "../util/utils_solid";
 import { ShowAnimate } from "./animation";
 import Clickable from "./Clickable";
 import { LinkButton } from "./links";
 import { ClientContent, CrosspostWrapper, TopLevelWrapper } from "./page2";
 import { RichtextParagraphs } from "./richtext";
 import ToggleButton from "./ToggleButton";
+import Page2ContentManager from "../util/Page2ContentManager";
 export * from "../util/interop_solid";
 
 function SettingsSection(props: {title: string, children?: undefined | JSX.Element}): JSX.Element {
@@ -80,7 +81,9 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
     const [showDevSettings, setShowDevSettings] = createSignal(false);
     const settings = getSettings();
 
-    return <main class="client-wrapper"><div class="display-comments-view handles-clicks bg-slate-300 dark:bg-zinc-900">
+    return <PageRootProvider
+        content={new Page2ContentManager(undefined, "pivot" as any)}
+    ><main class="client-wrapper"><div class="display-comments-view handles-clicks bg-slate-300 dark:bg-zinc-900">
         <SettingsSection title="Color Scheme">
             <SettingPicker
                 setting={settings.colorScheme}
@@ -91,6 +94,49 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                     default: "System Default",
                 } as const)[v ?? "default"]}
             />
+        </SettingsSection>
+        <SettingsSection title="Content Warnings">
+            <SettingPicker
+                setting={settings.contentWarnings}
+                options={["show", "hide", undefined]}
+                name={v => ({
+                    show: "Show",
+                    hide: "Hide",
+                    default: "Show",
+                } as const)[v ?? "default"]}
+            />
+            {(() => {
+                settings.contentWarnings(); // rerender when the setting value changes
+                return <CrosspostWrapper>
+                    <ClientContent content={{
+                        kind: "post",
+
+                        title: {text: "Breakfast"},
+                        author: {
+                            name: "pfg___",
+                            client_id: "reddit",
+                            color_hash: "pfg___",
+                            link: "/u/pfg___",
+                            pfp: {
+                                url: "https://www.redditstatic.com/avatars/avatar_default_02_FF8717.png",
+                            },
+                        },
+                        flair: [{elems: [rt.txt("Food")], content_warning: true}],
+                        collapsible: {default_collapsed: false},
+                        body: {
+                            kind: "richtext",
+                            content: [{kind: "paragraph", children: [
+                                {kind: "text", text: "I like to eat food.", styles: {}},
+                            ]}],
+                        },
+                    }} opts={{
+                        frame: null,
+                        client_id: "",
+                        flat_frame: null,
+                        id: null,
+                    }} />
+                </CrosspostWrapper>;
+            })()}
         </SettingsSection>
         <SettingsSection title="Profile Images">
             <SettingPicker
@@ -454,7 +500,7 @@ export default function SettingsPage(props: {_?: undefined}): JSX.Element {
                 </p>
             </ShowAnimate>
         </SettingsSection>
-    </div></main>;
+    </div></main></PageRootProvider>;
     // TODO display:
     // - if the app is ready for offline use
     // - only show the "update now" button if an update is available
