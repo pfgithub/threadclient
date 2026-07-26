@@ -71,6 +71,14 @@ export function navigate({path, page, mode, display}: {
 export type URLLike = {search: string, pathname: string, hash: string};
 
 
+function addnohide(nohide: Set<UUID>, target: UUID): void {
+    if (nohide.has(target)) return;
+    const item = nav_history_map.get(target);
+    if (item == null) return;
+    if (item.overlayParent == null) return;
+    addnohide(nohide, item.overlayParent);
+}
+
 export function onNavigate(
     to_key: UUID,
     url_in: URLLike,
@@ -92,8 +100,14 @@ export function onNavigate(
     const prev_key = current_nav_history_key;
     setCurrentHistoryKey(to_key);
 
-    // hide all history
-    [...nav_history_map.values()].forEach(item => {
+    // hide history, except any items that stay visible
+    const nohide: Set<UUID> = new Set();
+    addnohide(nohide, to_key);
+    if (display === "overlay") {
+        addnohide(nohide, prev_key);
+    }
+    [...nav_history_map.entries()].forEach(([key, item]) => {
+        if (nohide.has(key)) return;
         item.node.hide();
     });
 
@@ -101,16 +115,16 @@ export function onNavigate(
     if(historyitem) {
         showHistoryEntry(to_key);
         return; // done
-    } else {
-        // remove
-        const ordered_keys = [...nav_history_map.keys()].sort();
-        for(let i = ordered_keys.length - 1; i >= 0; i--) {
-            const key = ordered_keys[i]!;
-            if(key <= prev_key) break;
-            const value = nav_history_map.get(key)!;
-            nav_history_map.delete(key);
-            value.node.removeSelf();
-        }
+    }
+
+    // remove
+    const ordered_keys = [...nav_history_map.keys()].sort();
+    for(let i = ordered_keys.length - 1; i >= 0; i--) {
+        const key = ordered_keys[i]!;
+        if(key <= prev_key) break;
+        const value = nav_history_map.get(key)!;
+        nav_history_map.delete(key);
+        value.node.removeSelf();
     }
 
     const hsc = hideshow();
