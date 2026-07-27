@@ -318,8 +318,19 @@ function richtextSpan(rtd: Reddit.Richtext.Span, opt: RichtextFormattingOptions)
             // TODO return a collapsible body segment containing the actual content
             // rather than doing this (excl. for emojis)
             const meta = opt.media_metadata[rtd.id];
-            if(!meta) return [rt.error("Missing media id "+rtd.id, meta)];
-            if(meta.status !== "valid") return [rt.error("Bad status "+meta.status, meta)];
+            if (!meta || meta.status !== "valid") {
+                if (rtd.id.startsWith("giphy|")) {
+                    const giphy_id = rtd.id.substr("giphy|".length);
+                    const giphy_url = `https://giphy.com/gifs/${giphy_id}`;
+                    // we can consider using the giphy api here https://developers.giphy.com/docs/api/endpoint/#get-gifs-by-id
+                    // batch all giphs into one call and replace with the elements all at once
+                    // anyway for now we'll just use a link
+                    return [
+                        rt.link(client, giphy_url, {}, rt.txt(giphy_url)),
+                    ];
+                }
+                return [rt.error(`TODO: support media type: ${rtd.id}`, {meta, rtd})];
+            }
             if(meta.e === "AnimatedImage") {
                 return [
                     rt.link(client, meta.s.mp4 ?? meta.s.gif, {}, rt.txt("[embedded "+rtd.id.split("|")[0]+"]")),
@@ -423,7 +434,7 @@ function getAccessToken() {
             running_get_access_token = [];
         }).catch(e => {
             console.log("Get access token error", e);
-            
+
             running_get_access_token.forEach(v => v(null));
             running_get_access_token = [];
         });
@@ -455,7 +466,7 @@ async function getAccessTokenInternal() {
         }else{
             device_id = generateDeviceID();
         }
-        
+
 
         const v = await fetch("https://www.reddit.com/api/v1/access_token", {
             method: "POST", mode: "cors", credentials: "omit",
@@ -832,7 +843,7 @@ function sidebarFromWidgets(subinfo: SubInfo): Generic.ContentNode[] {
     };
 
     const wrap = (data: Reddit.Widget): Generic.ContentNode => sidebarWidgetToGenericWidget(data, subinfo.subreddit);
-    
+
     // TODO moderator widget
     const res: Generic.ContentNode[] = [
         // ...widgets ? widgets.layout.topbar.order.map(id => wrap(getItem(id))) : [],
@@ -886,7 +897,7 @@ export function subredditHeaderExists(subinfo: SubInfo): Generic.FilledIdentityC
             break wdgs;
         }
         const menu = subinfo.widgets.items[subinfo.widgets.layout.topbar.order[0]!]!;
-        
+
         if(menu.kind !== "menu") {
             res_menu.push({text: "ERROR Topbar Item", action: {kind: "link", client_id: client.id, url: "error"}, selected: false});
             break wdgs;
@@ -1191,7 +1202,7 @@ export function pageFromListing(
                             actions: [],
                             default_collapsed: false,
                             layout: "reddit-post",
-                        }))()] : [], 
+                        }))()] : [],
                         ...header_children,
                     ],
                     menu,
@@ -1293,7 +1304,7 @@ export function pageFromListing(
             const next_path = updateQuery(pathraw, {before: undefined, after: listing.data.after});
             next = {kind: "load_more_unmounted", load_more_unmounted: load_more_unmounted_encoder.encode({kind: "listing", url: next_path}), url: next_path, count: undefined, raw_value: listing};
         }
-        
+
         const user_sorted_tabs_named = [
             ["overview", "Overview"], ["comments", "Comments"], ["submitted", "Submitted"],
             // ["gilded", "Gilded"],
@@ -1733,7 +1744,7 @@ function topLevelThreadFromInboxMsg(inbox_msg: Reddit.InboxMsg): Generic.Unmount
                 default_collapsed: false,
                 actions: [],
                 raw_value: inbox_msg,
-                
+
                 // :: if parent id starts with t1_ && is t1 msg
                 // add a load more button in to get the parent
             }, threadFromInboxMsg(inbox_msg)],
@@ -2169,7 +2180,7 @@ export function getPostBody(listing: Reddit.PostSubmission): Generic.Body {
             close_time: listing.poll_data.voting_end_timestamp,
         });
     }
-    
+
     if (arrayElems.length === 1) return arrayElems[0]!;
     if (arrayElems.length > 0) return {kind: "array", body: arrayElems};
     return {kind: "none"};
@@ -2434,7 +2445,7 @@ function threadFromListingMayError(listing_raw: Reddit.Post, options: ThreadOpts
         };
     }
     // console.log("Post: ",listing);
-    
+
 }
 
 function getLoginURL() {
@@ -2701,7 +2712,7 @@ export function parseLink(path: string): [parsed: ParsedPath, path: string] {
         path = parsed.to;
         parsed = path_router.parse(path)!;
     }
-    
+
     return [parsed, path];
 }
 
@@ -2748,7 +2759,7 @@ export class RedditClient extends ThreadClientHelper {
         const res = new RedditClient(this);
         return {client: res, dirty: res.takeDirty()};
     }
-    
+
     getLink<Key extends ResolverL1>(key: Key, base: ResolverBase<NoInfer<Key>>): Generic.Link<ResolverResult<NoInfer<Key>>> {
         return `${JSON.stringify([key, base])}` as Generic.Link<ResolverResult<NoInfer<Key>>>;
     }
@@ -2849,7 +2860,7 @@ export const client_base: ThreadClientImplements = {
                     redditRequest(link as "/__any", {method: "GET"}),
                     fetchSubInfo(parsed.sub),
                 ]);
-                
+
                 return pageFromListing(pathraw, parsed, result, {...subinfo});
             }else if(parsed.kind === "user") {
                 const link = pathraw;
@@ -2995,7 +3006,7 @@ export const client_base: ThreadClientImplements = {
             const e = err_raw as Error;
             console.log(e);
             const is_networkerror = e.toString().includes("NetworkError");
-            
+
             return {
                 title: "Error",
                 navbar: getNavbar(pathraw_in),
@@ -3046,7 +3057,7 @@ export const client_base: ThreadClientImplements = {
             },
             body: encodeQuery({grant_type: "authorization_code", code, redirect_uri}),
         }).then(res => res.json()) as Reddit.AccessToken;
-    
+
         if(v.error) {
             console.log(v.error);
             throw new Error("error "+v.error);
@@ -3181,7 +3192,7 @@ export const client_base: ThreadClientImplements = {
             actions: [{
                 kind: "counter",
                 client_id: client.id,
-                
+
                 increment: {
                     icon: "up_arrow",
                     color: "orange",
@@ -3321,7 +3332,7 @@ export const client_base: ThreadClientImplements = {
         });
 
         for(const site_rule of sub_rules.site_rules_flow) {
-            result.push(siteRuleToReportScreen(data, site_rule));   
+            result.push(siteRuleToReportScreen(data, site_rule));
         }
 
         return result;
